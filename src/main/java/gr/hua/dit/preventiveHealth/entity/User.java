@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -51,6 +52,11 @@ public class User {
             joinColumns = {@JoinColumn(name = "userId"), @JoinColumn(name = "roleId")})
     private Set<Role> roles= new HashSet<>();
 
+    @OneToMany(mappedBy="user", cascade = CascadeType.ALL)
+    private List<RegisterRequest> registerRequests;
+    public List<RegisterRequest> getRegisterRequests() {
+        return registerRequests;
+    }
 
     public User() {
     }

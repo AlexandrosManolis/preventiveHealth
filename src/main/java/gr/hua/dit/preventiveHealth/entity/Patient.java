@@ -41,11 +41,6 @@ public class Patient{
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String amka;
 
-    @NotBlank
-    @Size(min=8, max=8)
-    @Pattern(regexp = "[A-Z]{2}\\d{6}", flags = Pattern.Flag.MULTILINE)
-    private String identity;
-
     private LocalDate parseBirthday(String birthdayStr) {
         if (birthdayStr == null || birthdayStr.isEmpty()) {
             return null; // Handle empty birthday
@@ -62,11 +57,10 @@ public class Patient{
     public Patient() {
     }
 
-    public Patient(Gender gender, String birthdayStr, String amka, String identity) {
+    public Patient(Gender gender, String birthdayStr, String amka) {
         this.gender = gender;
         this.birthday = parseBirthday(birthdayStr);
         this.amka = amka;
-        this.identity = identity;
     }
 
     public User getUser() {
@@ -101,11 +95,4 @@ public class Patient{
         this.amka = amka;
     }
 
-    public String getIdentity() {
-        return identity;
-    }
-
-    public void setIdentity(String identity) {
-        this.identity = identity;
-    }
 }

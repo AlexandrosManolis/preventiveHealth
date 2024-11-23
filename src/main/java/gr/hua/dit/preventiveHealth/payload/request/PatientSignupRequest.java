@@ -30,11 +30,6 @@ public class PatientSignupRequest {
     private String amka;
 
     @NotBlank
-    @Size(min=8, max=8)
-    @Pattern(regexp = "[A-Z]{2}\\d{6}", flags = Pattern.Flag.MULTILINE)
-    private String identity;
-
-    @NotBlank
     @Size(max = 20)
     private String username;
 
@@ -123,13 +118,5 @@ public class PatientSignupRequest {
 
     public void setAmka(String amka) {
         this.amka = amka;
-    }
-
-    public String getIdentity() {
-        return identity;
-    }
-
-    public void setIdentity(String identity) {
-        this.identity = identity;
     }
 }
