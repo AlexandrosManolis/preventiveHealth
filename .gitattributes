@@ -1,2 +1,8 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+# Explicit LF for Java files
+*.java text eol=lf
+
+# Enforce LF for all text files
+* text=auto eol=lf

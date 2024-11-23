@@ -1,4 +1,3 @@
-HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -31,8 +30,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-
-src/main/java/gr/hua/dit/preventiveHealth/config/
-src/main/java/gr/hua/dit/preventiveHealth/entity/
-src/main/java/gr/hua/dit/preventiveHealth/service/
