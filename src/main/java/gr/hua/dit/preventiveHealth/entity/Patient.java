@@ -1,13 +1,11 @@
 package gr.hua.dit.preventiveHealth.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @Entity
 @Table(name = "patients",
@@ -36,23 +34,27 @@ public class Patient{
 
     @NotBlank
     @DateTimeFormat(pattern = "dd/MM/yyyy")
-    private Date birthday;
+    private LocalDate birthday;
 
     @NotBlank
+    @Size(min = 9, max = 9, message = "Number should contain exactly 9 digits.")
+    @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String amka;
 
     @NotBlank
+    @Size(min=8, max=8)
+    @Pattern(regexp = "[A-Z]{2}\\d{6}", flags = Pattern.Flag.MULTILINE)
     private String identity;
 
-    private Date parseBirthday(String birthdayStr) {
+    private LocalDate parseBirthday(String birthdayStr) {
         if (birthdayStr == null || birthdayStr.isEmpty()) {
             return null; // Handle empty birthday
         }
 
-        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         try {
-            return formatter.parse(birthdayStr);
-        } catch (ParseException e) {
+            return LocalDate.parse(birthdayStr, formatter);
+        } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid date format. Expected dd/MM/yyyy", e);
         }
     }
@@ -83,11 +85,11 @@ public class Patient{
         this.gender = gender;
     }
 
-    public Date getBirthday() {
+    public LocalDate getBirthday() {
         return birthday;
     }
 
-    public void setBirthday(Date birthday) {
+    public void setBirthday(LocalDate birthday) {
         this.birthday = birthday;
     }
 

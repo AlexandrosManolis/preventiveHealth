@@ -1,17 +1,9 @@
 package gr.hua.dit.preventiveHealth.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.format.annotation.DateTimeFormat;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
