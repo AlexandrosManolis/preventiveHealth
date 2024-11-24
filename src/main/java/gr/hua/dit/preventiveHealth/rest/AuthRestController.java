@@ -8,6 +8,7 @@ import gr.hua.dit.preventiveHealth.payload.request.LoginRequest;
 import gr.hua.dit.preventiveHealth.payload.request.PatientSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.response.JwtResponse;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
+import gr.hua.dit.preventiveHealth.repository.RegisterRequestRepository;
 import gr.hua.dit.preventiveHealth.repository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.UserRepository;
 import gr.hua.dit.preventiveHealth.service.UserDetailsImpl;
@@ -43,6 +44,9 @@ public class AuthRestController {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private RegisterRequestRepository registerRequestRepository;
 
     @Autowired
     private JwtUtils jwtUtils;
@@ -167,12 +171,17 @@ public class AuthRestController {
 
         user.setDoctor(doctor);
 
+        //save user
+        userRepository.save(user);
+
+        if (registerRequestRepository.existsByUser(user)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: User already has an active request!"));
+        }
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setUser(user);
         registerRequest.setStatus(RegisterRequest.Status.PENDING);
 
-        //save user
-        userRepository.save(user);
+        registerRequestRepository.save(registerRequest);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
@@ -222,12 +231,17 @@ public class AuthRestController {
 
         user.setDiagnosticCenter(diagnosticCenter);
 
+        //save user
+        userRepository.save(user);
+
+        if (registerRequestRepository.existsByUser(user)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: User already has an active request!"));
+        }
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setUser(user);
         registerRequest.setStatus(RegisterRequest.Status.PENDING);
 
-        //save user
-        userRepository.save(user);
+        registerRequestRepository.save(registerRequest);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }

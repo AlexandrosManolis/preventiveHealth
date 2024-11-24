@@ -17,7 +17,5 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     Boolean existsByAmka(String amka);
 
-    Boolean existsByIdentity(String identity);
-
     Boolean existsByAfm(String afm);
 }

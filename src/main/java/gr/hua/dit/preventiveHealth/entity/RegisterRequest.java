@@ -1,10 +1,10 @@
 package gr.hua.dit.preventiveHealth.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "registerRequest")
+@Table(name = "registerRequest", uniqueConstraints = @UniqueConstraint(columnNames = "userId"))
 public class RegisterRequest {
 
     @Id
@@ -17,12 +17,12 @@ public class RegisterRequest {
         REJECTED
     }
 
-    @NotEmpty
+    @NotNull
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    @ManyToOne(cascade = {CascadeType.DETACH,CascadeType.MERGE,CascadeType.PERSIST,CascadeType.REFRESH})
-    @JoinColumn(name = "userId")
+    @ManyToOne(cascade = {CascadeType.DETACH,CascadeType.MERGE,CascadeType.PERSIST,CascadeType.REFRESH}, optional = false)
+    @JoinColumn(name = "userId", nullable = false)
     private User user;
 
     public RegisterRequest() {
