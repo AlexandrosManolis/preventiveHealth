@@ -8,4 +8,6 @@ public interface RegisterRequestRepository extends JpaRepository<RegisterRequest
 
 
     Boolean existsByUser(User user);
+
+    Boolean existsByUserId(Integer userId);
 }
