@@ -1,5 +1,7 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,6 +23,8 @@ public class Patient{
 
     @OneToOne
     @MapsId
+    @JoinColumn(name = "id")
+    @JsonIgnore
     private User user;
 
     public enum Gender {
@@ -32,12 +36,13 @@ public class Patient{
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-    @NotBlank
-    @DateTimeFormat(pattern = "dd/MM/yyyy")
+    @NotNull
+    @Past(message = "Birthday must be in the past") // Example of an additional validation for a past date
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
 
     @NotBlank
-    @Size(min = 9, max = 9, message = "Number should contain exactly 9 digits.")
+    @Size(min = 11, max = 11, message = "Number should contain exactly 11 digits.")
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String amka;
 
@@ -57,7 +62,8 @@ public class Patient{
     public Patient() {
     }
 
-    public Patient(Gender gender, String birthdayStr, String amka) {
+    public Patient(User user, Gender gender, String birthdayStr, String amka) {
+        this.user = user;
         this.gender = gender;
         this.birthday = parseBirthday(birthdayStr);
         this.amka = amka;

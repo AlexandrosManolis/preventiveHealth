@@ -10,8 +10,7 @@ import java.util.List;
 @Entity
 @Table(name = "diagnosticCenters",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = "username"),
-                @UniqueConstraint(columnNames = "email")
+                @UniqueConstraint(columnNames = "afm")
         })
 public class DiagnosticCenter {
 
@@ -25,6 +24,9 @@ public class DiagnosticCenter {
 
     @NotBlank
     private String address;
+
+    @NotBlank
+    private String city;
 
     @NotBlank
     private String state;
@@ -53,14 +55,23 @@ public class DiagnosticCenter {
     public DiagnosticCenter() {
     }
 
-    public DiagnosticCenter(String address, String state, String doy, String afm, List<String> specialties, List<Schedule> schedules, User user) {
+    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<Schedule> schedules, User user) {
         this.address = address;
+        this.city = city;
         this.state = state;
         this.doy = doy;
         this.afm = afm;
         this.specialties = specialties;
         this.schedules = schedules;
         this.user = user;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public String getAddress() {

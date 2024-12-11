@@ -1,8 +1,11 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.Set;
             @UniqueConstraint(columnNames = "email")
         }
 )
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
 
     @Id
@@ -35,21 +39,22 @@ public class User {
     @NotBlank
     private String fullName;
 
-    @NotBlank
-    private String phone;
+    @NotNull
+    private String phoneNumber;
 
-    @OneToOne(mappedBy = "user" , cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user" , cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private Patient patient;
 
-    @OneToOne(mappedBy = "user" , cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user" , cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private Doctor doctor;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private DiagnosticCenter diagnosticCenter;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
-            joinColumns = {@JoinColumn(name = "userId"), @JoinColumn(name = "roleId")})
+            joinColumns = {@JoinColumn(name = "userId")},
+            inverseJoinColumns = {@JoinColumn(name = "roleId")})
     private Set<Role> roles= new HashSet<>();
 
     @OneToMany(mappedBy="user", cascade = CascadeType.ALL)
@@ -61,21 +66,21 @@ public class User {
     public User() {
     }
 
-    public User(String username, String password, String email, String fullName, String phone) {
+    public User(String username, String password, String email, String fullName, String phoneNumber) {
         this.username = username;
         this.password = password;
         this.email = email;
         this.fullName = fullName;
-        this.phone = phone;
+        this.phoneNumber = phoneNumber;
         this.roles = new HashSet<>();
     }
 
-    public User(String username, String password, String email, String fullName, String phone, Patient patient) {
+    public User(String username, String password, String email, String fullName, String phoneNumber, Patient patient) {
         this.username = username;
         this.password = password;
         this.email = email;
         this.fullName = fullName;
-        this.phone = phone;
+        this.phoneNumber = phoneNumber;
         this.patient = patient;
         this.roles = new HashSet<>();
 
@@ -84,12 +89,12 @@ public class User {
         }
     }
 
-    public User(String username, String password, String email, String fullName, String phone, Doctor doctor) {
+    public User(String username, String password, String email, String fullName, String phoneNumber, Doctor doctor) {
         this.username = username;
         this.password = password;
         this.email = email;
         this.fullName = fullName;
-        this.phone = phone;
+        this.phoneNumber = phoneNumber;
         this.doctor = doctor;
         this.roles = new HashSet<>();
 
@@ -98,12 +103,12 @@ public class User {
         }
     }
 
-    public User(String username, String password, String email, String fullName, String phone, DiagnosticCenter diagnosticCenter) {
+    public User(String username, String password, String email, String fullName, String phoneNumber, DiagnosticCenter diagnosticCenter) {
         this.username = username;
         this.password = password;
         this.email = email;
         this.fullName = fullName;
-        this.phone = phone;
+        this.phoneNumber = phoneNumber;
         this.diagnosticCenter = diagnosticCenter;
         this.roles = new HashSet<>();
 
@@ -152,12 +157,12 @@ public class User {
         this.fullName = fullName;
     }
 
-    public String getPhone() {
-        return phone;
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
     public Patient getPatient() {

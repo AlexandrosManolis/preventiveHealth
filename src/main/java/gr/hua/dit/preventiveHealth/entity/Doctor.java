@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -20,10 +21,14 @@ public class Doctor {
 
     @OneToOne
     @MapsId
+    @JsonIgnore
     private User user;
 
     @NotBlank
     private String address;
+
+    @NotBlank
+    private String city;
 
     @NotBlank
     private String state;
@@ -39,15 +44,16 @@ public class Doctor {
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String afm;
 
-    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Schedule> schedules;
 
     public Doctor() {
     }
 
-    public Doctor(User user, String address, String specialty, String state, String doy, String afm, List<Schedule> schedules) {
+    public Doctor(User user, String address, String city, String specialty, String state, String doy, String afm, List<Schedule> schedules) {
         this.user = user;
         this.address = address;
+        this.city = city;
         this.specialty = specialty;
         this.state = state;
         this.doy = doy;
@@ -61,6 +67,14 @@ public class Doctor {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public String getState() {

@@ -2,6 +2,7 @@ package gr.hua.dit.preventiveHealth.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import javax.tools.Diagnostic;
@@ -23,16 +24,16 @@ public class Schedule {
     @JoinColumn(name = "diagnostic_center_id", nullable = true)
     private DiagnosticCenter diagnosticCenter;
 
-    @NotBlank
+    @NotNull
     private String specialty;
 
     @Enumerated(EnumType.STRING)
     private DayOfWeek dayOfWeek;
 
-    @Pattern(regexp = "^([0-1]\\\\d|2[0-3]):[0-5]\\\\d$", message = "Invalid time format")
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Invalid time format")
     private String startTime;
 
-    @Pattern(regexp = "^([0-1]\\\\d|2[0-3]):[0-5]\\\\d$", message = "Invalid time format")
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Invalid time format")
     private String endTime;
 
     public Schedule() {
