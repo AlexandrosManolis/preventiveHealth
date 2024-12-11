@@ -11,9 +11,12 @@ import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.RegisterRequestRepository;
 import gr.hua.dit.preventiveHealth.repository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.UserRepository;
+import gr.hua.dit.preventiveHealth.service.RegisterRequestService;
 import gr.hua.dit.preventiveHealth.service.UserDetailsImpl;
+import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,9 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -38,6 +39,8 @@ public class AuthRestController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private UserRepository userRepository;
@@ -50,6 +53,8 @@ public class AuthRestController {
 
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private RegisterRequestService registerRequestService;
 
     //check username and password and if they are right set token and enter the platform
     @PostMapping("signin")
@@ -76,6 +81,17 @@ public class AuthRestController {
                 roles));
     }
 
+    @GetMapping("/check-user")
+    public ResponseEntity<Map<String, Boolean>> checkUser(@RequestParam(required = false) String username,
+                                                          @RequestParam(required = false) String email) {
+        boolean emailExists = userRepository.existsByEmail(email);
+        boolean usernameExists = userRepository.existsByUsername(username);
+        boolean userExists = emailExists || usernameExists;
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("exists", userExists);
+        return ResponseEntity.ok(response);
+    }
+
     //create a new user
     @PostMapping("signup/patient")
     public ResponseEntity<?> registerUser(@Valid @RequestBody PatientSignupRequest signupRequest) {
@@ -91,21 +107,21 @@ public class AuthRestController {
                     .badRequest()
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
-        if (userRepository.existsByAmka(signupRequest.getAmka())) {
+        if (userRepository.existsByPatient_Amka(signupRequest.getAmka())) {
             return ResponseEntity
                     .badRequest()
                     .body(new MessageResponse("Error: Afm is already in use!"));
         }
 
         // Create new user's account
-        User user= new User(signupRequest.getUsername(), encoder.encode(signupRequest.getPassword()), signupRequest.getEmail(), signupRequest.getFullName(),signupRequest.getPhone());
+        User user= new User(signupRequest.getUsername(), encoder.encode(signupRequest.getPassword()), signupRequest.getEmail(), signupRequest.getFullName(),signupRequest.getPhoneNumber());
 
         //set role farmer
         Set<Role> strRoles = signupRequest.getRoles();
         Set<Role> roles = new HashSet<>();
 
         if (strRoles == null) {
-            Role userRole = roleRepository.findByName("ROLE_PATIENT")
+            Role userRole = roleRepository.findByRoleName("ROLE_PATIENT")
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(userRole);
         }
@@ -140,21 +156,21 @@ public class AuthRestController {
                     .badRequest()
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
-        if (userRepository.existsByAfm(signupRequest.getAfm())) {
+        if (userRepository.existsByDoctor_Afm(signupRequest.getAfm())) {
             return ResponseEntity
                     .badRequest()
                     .body(new MessageResponse("Error: Afm is already in use!"));
         }
 
         // Create new user's account
-        User user= new User(signupRequest.getUsername(), encoder.encode(signupRequest.getPassword()), signupRequest.getEmail(), signupRequest.getFullName(),signupRequest.getPhone());
+        User user= new User(signupRequest.getUsername(), encoder.encode(signupRequest.getPassword()), signupRequest.getEmail(), signupRequest.getFullName(),signupRequest.getPhoneNumber());
 
         //set role farmer
         Set<Role> strRoles = signupRequest.getRoles();
         Set<Role> roles = new HashSet<>();
 
         if (strRoles == null) {
-            Role userRole = roleRepository.findByName("ROLE_DOCTOR")
+            Role userRole = roleRepository.findByRoleName("ROLE_DOCTOR")
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(userRole);
         }
@@ -163,11 +179,25 @@ public class AuthRestController {
         Doctor doctor = new Doctor();
         doctor.setUser(user);
         doctor.setAddress(signupRequest.getAddress());
+        doctor.setCity(signupRequest.getCity());
         doctor.setAfm(signupRequest.getAfm());
         doctor.setDoy(signupRequest.getDoy());
         doctor.setState(signupRequest.getState());
         doctor.setSpecialty(signupRequest.getSpecialty());
-        doctor.setSchedules(signupRequest.getSchedules());
+
+        List<Schedule> schedules = signupRequest.getSchedules().stream()
+                .map(scheduleRequest -> {
+                    Schedule schedule = new Schedule();
+                    schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
+                    schedule.setStartTime(scheduleRequest.getStartTime());
+                    schedule.setEndTime(scheduleRequest.getEndTime());
+                    schedule.setDoctor(doctor); // Set the owning side
+                    schedule.setSpecialty(doctor.getSpecialty());
+                    return schedule;
+                })
+                .collect(Collectors.toList());
+
+        doctor.setSchedules(schedules);
 
         user.setDoctor(doctor);
 
@@ -200,21 +230,21 @@ public class AuthRestController {
                     .badRequest()
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
-        if (userRepository.existsByAfm(signupRequest.getAfm())) {
+        if (userRepository.existsByDiagnosticCenter_Afm(signupRequest.getAfm())) {
             return ResponseEntity
                     .badRequest()
                     .body(new MessageResponse("Error: Afm is already in use!"));
         }
 
         // Create new user's account
-        User user= new User(signupRequest.getUsername(), encoder.encode(signupRequest.getPassword()), signupRequest.getEmail(), signupRequest.getFullName(),signupRequest.getPhone());
+        User user= new User(signupRequest.getUsername(), encoder.encode(signupRequest.getPassword()), signupRequest.getEmail(), signupRequest.getFullName(),signupRequest.getPhoneNumber());
 
         //set role farmer
         Set<Role> strRoles = signupRequest.getRoles();
         Set<Role> roles = new HashSet<>();
 
         if (strRoles == null) {
-            Role userRole = roleRepository.findByName("ROLE_DIAGNOSTIC")
+            Role userRole = roleRepository.findByRoleName("ROLE_DIAGNOSTIC")
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(userRole);
         }
@@ -223,11 +253,29 @@ public class AuthRestController {
         DiagnosticCenter diagnosticCenter = new DiagnosticCenter();
         diagnosticCenter.setUser(user);
         diagnosticCenter.setAddress(signupRequest.getAddress());
+        diagnosticCenter.setCity(signupRequest.getCity());
         diagnosticCenter.setAfm(signupRequest.getAfm());
         diagnosticCenter.setDoy(signupRequest.getDoy());
         diagnosticCenter.setState(signupRequest.getState());
         diagnosticCenter.setSpecialties(signupRequest.getSpecialties());
-        diagnosticCenter.setSchedules(signupRequest.getSchedules());
+
+        List<Schedule> schedules = signupRequest.getSchedules().stream()
+                .map(scheduleRequest -> {
+                    Schedule schedule = new Schedule();
+                    schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
+                    schedule.setStartTime(scheduleRequest.getStartTime());
+                    schedule.setEndTime(scheduleRequest.getEndTime());
+                    schedule.setDiagnosticCenter(diagnosticCenter); // Set the owning side
+
+                    List<String> specialties = diagnosticCenter.getSpecialties(); // Assuming this is a List<String>
+                    String specialtyString = String.join(", ", specialties); // Join with commas (or another separator)
+                    schedule.setSpecialty(specialtyString);
+
+                    return schedule;
+                })
+                .collect(Collectors.toList());
+
+        diagnosticCenter.setSchedules(schedules);
 
         user.setDiagnosticCenter(diagnosticCenter);
 
@@ -243,6 +291,6 @@ public class AuthRestController {
 
         registerRequestRepository.save(registerRequest);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        return new ResponseEntity<>(user, HttpStatus.CREATED);
     }
 }
