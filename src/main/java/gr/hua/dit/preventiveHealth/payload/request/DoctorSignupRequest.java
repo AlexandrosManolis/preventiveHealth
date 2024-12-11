@@ -19,6 +19,9 @@ public class DoctorSignupRequest {
     private String state;
 
     @NotBlank
+    private String city;
+
+    @NotBlank
     private String specialty;
 
     @NotBlank
@@ -46,7 +49,7 @@ public class DoctorSignupRequest {
     private String fullName;
 
     @NotBlank
-    private String phone;
+    private String phoneNumber;
 
     private Set<Role> roles;
 
@@ -58,12 +61,20 @@ public class DoctorSignupRequest {
         this.fullName = fullName;
     }
 
-    public String getPhone() {
-        return phone;
+    public String getCity() {
+        return city;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
     public String getEmail() {

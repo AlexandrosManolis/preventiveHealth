@@ -16,6 +16,9 @@ public class DiagnosticSignupRequest {
     private String address;
 
     @NotBlank
+    private String city;
+
+    @NotBlank
     private String state;
 
     @NotBlank
@@ -45,7 +48,7 @@ public class DiagnosticSignupRequest {
     private String fullName;
 
     @NotBlank
-    private String phone;
+    private String phoneNumber;
 
     private Set<Role> roles;
 
@@ -57,12 +60,20 @@ public class DiagnosticSignupRequest {
         this.fullName = fullName;
     }
 
-    public String getPhone() {
-        return phone;
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public String getEmail() {

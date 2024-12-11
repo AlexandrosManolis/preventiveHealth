@@ -53,10 +53,9 @@ public class SecurityConfig{
                                                 .authenticationEntryPoint(unauthorizedHandler))
                                         .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/v3/api-docs/**", "/v2/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                                                .requestMatchers("/api/auth/**","/actuator/health/**").permitAll()
-                                                .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
-
-                                        .anyRequest().authenticated()
+                                                .requestMatchers("/api/auth/**","/actuator/health/**", "/api/user/**", "api/**").permitAll()
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                                .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .logout((logout) -> logout.permitAll());

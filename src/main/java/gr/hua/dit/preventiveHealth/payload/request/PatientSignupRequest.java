@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.payload.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import gr.hua.dit.preventiveHealth.entity.Patient;
 import gr.hua.dit.preventiveHealth.entity.Role;
 import jakarta.persistence.EnumType;
@@ -20,12 +21,13 @@ public class PatientSignupRequest {
     @Enumerated(EnumType.STRING)
     private Patient.Gender gender;
 
-    @NotBlank
-    @DateTimeFormat(pattern = "dd/MM/yyyy")
+    @NotNull
+    @Past(message = "Birthday must be in the past") // Example of an additional validation for a past date
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
 
     @NotBlank
-    @Size(min = 9, max = 9, message = "Number should contain exactly 9 digits.")
+    @Size(min = 11, max = 11, message = "Number should contain exactly 11 digits.")
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String amka;
 
@@ -44,7 +46,7 @@ public class PatientSignupRequest {
     private String fullName;
 
     @NotBlank
-    private String phone;
+    private String phoneNumber;
 
     private Set<Role> roles;
 
@@ -56,12 +58,12 @@ public class PatientSignupRequest {
         this.fullName = fullName;
     }
 
-    public String getPhone() {
-        return phone;
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
     public String getEmail() {
