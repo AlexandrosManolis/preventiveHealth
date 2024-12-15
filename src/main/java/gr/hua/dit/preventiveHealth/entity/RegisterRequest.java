@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 
@@ -21,8 +22,9 @@ public class RegisterRequest {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    @ManyToOne(cascade = {CascadeType.DETACH,CascadeType.MERGE,CascadeType.PERSIST,CascadeType.REFRESH}, optional = false)
+    @OneToOne(optional = false, cascade = CascadeType.ALL)
     @JoinColumn(name = "userId", nullable = false)
+    @JsonBackReference("user-registerRequest")
     private User user;
 
     public RegisterRequest() {
@@ -46,5 +48,13 @@ public class RegisterRequest {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 }

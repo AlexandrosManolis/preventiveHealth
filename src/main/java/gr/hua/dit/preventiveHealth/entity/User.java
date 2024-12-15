@@ -1,14 +1,14 @@
 package gr.hua.dit.preventiveHealth.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import gr.hua.dit.preventiveHealth.payload.validation.Create;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -29,7 +29,7 @@ public class User {
     @Size(max = 20)
     private String username;
 
-    @NotBlank
+    @NotBlank(groups = Create.class)
     private String password;
 
     @NotBlank
@@ -42,14 +42,21 @@ public class User {
     @NotNull
     private String phoneNumber;
 
-    @OneToOne(mappedBy = "user" , cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JsonManagedReference("user-patient")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private Patient patient;
 
-    @OneToOne(mappedBy = "user" , cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JsonManagedReference("user-doctor")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private Doctor doctor;
 
+    @JsonManagedReference("user-diagnostic")
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private DiagnosticCenter diagnosticCenter;
+
+    @JsonManagedReference("user-registerRequest")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private RegisterRequest registerRequest;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
@@ -57,10 +64,8 @@ public class User {
             inverseJoinColumns = {@JoinColumn(name = "roleId")})
     private Set<Role> roles= new HashSet<>();
 
-    @OneToMany(mappedBy="user", cascade = CascadeType.ALL)
-    private List<RegisterRequest> registerRequests;
-    public List<RegisterRequest> getRegisterRequests() {
-        return registerRequests;
+    public RegisterRequest getRegisterRequest() {
+        return registerRequest;
     }
 
     public User() {
@@ -115,6 +120,10 @@ public class User {
         if(diagnosticCenter != null) {
             diagnosticCenter.setUser(this);
         }
+    }
+
+    public void setRegisterRequest(RegisterRequest registerRequest) {
+        this.registerRequest = registerRequest;
     }
 
     public Set<Role> getRoles() {

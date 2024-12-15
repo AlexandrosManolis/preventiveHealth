@@ -1,5 +1,7 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -18,8 +20,14 @@ public class DiagnosticCenter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @JsonManagedReference("diagnostic-schedule")
+    @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
+    private List<Schedule> schedules;
+
     @OneToOne
     @MapsId
+    @JsonBackReference("user-diagnostic")
+    @JoinColumn(name = "id")
     private User user;
 
     @NotBlank
@@ -48,9 +56,6 @@ public class DiagnosticCenter {
     )
     @Column(name = "specialty")
     private List<String> specialties;
-
-    @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
-    private List<Schedule> schedules;
 
     public DiagnosticCenter() {
     }

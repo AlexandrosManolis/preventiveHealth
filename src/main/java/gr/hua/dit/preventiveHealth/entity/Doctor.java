@@ -1,6 +1,8 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -19,9 +21,14 @@ public class Doctor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @JsonManagedReference("doctor-schedule")
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Schedule> schedules;
+
     @OneToOne
     @MapsId
-    @JsonIgnore
+    @JsonBackReference("user-doctor")
+    @JoinColumn(name = "id")
     private User user;
 
     @NotBlank
@@ -43,9 +50,6 @@ public class Doctor {
     @Size(min = 9, max = 9, message = "Number should contain exactly 9 digits.")
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String afm;
-
-    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Schedule> schedules;
 
     public Doctor() {
     }

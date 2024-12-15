@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -12,8 +13,7 @@ import java.time.format.DateTimeParseException;
 @Entity
 @Table(name = "patients",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = "amka"),
-                @UniqueConstraint(columnNames = "identity")
+                @UniqueConstraint(columnNames = "amka")
         })
 public class Patient{
 
@@ -24,7 +24,7 @@ public class Patient{
     @OneToOne
     @MapsId
     @JoinColumn(name = "id")
-    @JsonIgnore
+    @JsonBackReference("user-patient")
     private User user;
 
     public enum Gender {

@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,16 +17,15 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @JsonBackReference("doctor-schedule")
     @ManyToOne
     @JoinColumn(name = "doctor_id", nullable = true)
     private Doctor doctor;
 
+    @JsonBackReference("diagnostic-schedule")
     @ManyToOne
     @JoinColumn(name = "diagnostic_center_id", nullable = true)
     private DiagnosticCenter diagnosticCenter;
-
-    @NotNull
-    private String specialty;
 
     @Enumerated(EnumType.STRING)
     private DayOfWeek dayOfWeek;
@@ -39,20 +39,26 @@ public class Schedule {
     public Schedule() {
     }
 
-    public Schedule(Doctor doctor, String specialty, DayOfWeek dayOfWeek, String startTime, String endTime) {
+    public Schedule(Doctor doctor, DayOfWeek dayOfWeek, String startTime, String endTime) {
         this.doctor = doctor;
-        this.specialty = specialty;
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;
     }
 
-    public Schedule(DiagnosticCenter diagnosticCenter, String specialty, DayOfWeek dayOfWeek, String startTime, String endTime) {
+    public Schedule(DiagnosticCenter diagnosticCenter, DayOfWeek dayOfWeek, String startTime, String endTime) {
         this.diagnosticCenter = diagnosticCenter;
-        this.specialty = specialty;
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public Doctor getDoctor() {
@@ -69,14 +75,6 @@ public class Schedule {
 
     public void setDiagnosticCenter(DiagnosticCenter diagnosticCenter) {
         this.diagnosticCenter = diagnosticCenter;
-    }
-
-    public String getSpecialty() {
-        return specialty;
-    }
-
-    public void setSpecialty(String specialty) {
-        this.specialty = specialty;
     }
 
     public String getStartTime() {
