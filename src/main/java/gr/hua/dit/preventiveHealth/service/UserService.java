@@ -23,6 +23,12 @@ public class UserService implements UserDetailsService {
     @Autowired
     private UserDAO userDAO;
 
+    @Transactional
+    public Integer updateUser(User user) {
+        user = userRepository.save(user);
+        return user.getId();
+    }
+
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

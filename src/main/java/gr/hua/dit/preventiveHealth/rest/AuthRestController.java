@@ -8,6 +8,7 @@ import gr.hua.dit.preventiveHealth.payload.request.LoginRequest;
 import gr.hua.dit.preventiveHealth.payload.request.PatientSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.response.JwtResponse;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
+import gr.hua.dit.preventiveHealth.payload.validation.Create;
 import gr.hua.dit.preventiveHealth.repository.RegisterRequestRepository;
 import gr.hua.dit.preventiveHealth.repository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.UserRepository;
@@ -23,6 +24,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -93,6 +95,7 @@ public class AuthRestController {
     }
 
     //create a new user
+    @Validated(Create.class)
     @PostMapping("signup/patient")
     public ResponseEntity<?> registerUser(@Valid @RequestBody PatientSignupRequest signupRequest) {
         //check if user's data exists
@@ -142,6 +145,7 @@ public class AuthRestController {
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
+    @Validated(Create.class)
     @PostMapping("signup/doctor")
     public ResponseEntity<?> registerUser(@Valid @RequestBody DoctorSignupRequest signupRequest) {
         //check if user's data exists
@@ -191,8 +195,7 @@ public class AuthRestController {
                     schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
                     schedule.setStartTime(scheduleRequest.getStartTime());
                     schedule.setEndTime(scheduleRequest.getEndTime());
-                    schedule.setDoctor(doctor); // Set the owning side
-                    schedule.setSpecialty(doctor.getSpecialty());
+                    schedule.setDoctor(doctor);
                     return schedule;
                 })
                 .collect(Collectors.toList());
@@ -216,6 +219,7 @@ public class AuthRestController {
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
+    @Validated(Create.class)
     @PostMapping("signup/diagnostic")
     public ResponseEntity<?> registerUser(@Valid @RequestBody DiagnosticSignupRequest signupRequest) {
         //check if user's data exists
@@ -265,11 +269,7 @@ public class AuthRestController {
                     schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
                     schedule.setStartTime(scheduleRequest.getStartTime());
                     schedule.setEndTime(scheduleRequest.getEndTime());
-                    schedule.setDiagnosticCenter(diagnosticCenter); // Set the owning side
-
-                    List<String> specialties = diagnosticCenter.getSpecialties(); // Assuming this is a List<String>
-                    String specialtyString = String.join(", ", specialties); // Join with commas (or another separator)
-                    schedule.setSpecialty(specialtyString);
+                    schedule.setDiagnosticCenter(diagnosticCenter);
 
                     return schedule;
                 })

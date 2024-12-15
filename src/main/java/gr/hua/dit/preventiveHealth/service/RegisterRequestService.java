@@ -39,7 +39,7 @@ public class RegisterRequestService {
     }
 
     //get users with role requests using typedQuery
-    public List<User> getUsersWithRoleRequests() {
+    public List<User> getUsersWithRegisterRequests() {
         TypedQuery<User> query = entityManager.createQuery(
                 "SELECT DISTINCT r.user FROM RegisterRequest r WHERE r.status = 'Pending' AND r.user IS NOT NULL", User.class);
         return query.getResultList();
