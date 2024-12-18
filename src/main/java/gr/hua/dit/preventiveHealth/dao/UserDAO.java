@@ -3,6 +3,8 @@ package gr.hua.dit.preventiveHealth.dao;
 import gr.hua.dit.preventiveHealth.entity.User;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface UserDAO {
     //get user via user id
@@ -13,4 +15,6 @@ public interface UserDAO {
 
     //save user
     public void saveUser(User user);
+
+    public List<String> getAllSpecialties();
 }

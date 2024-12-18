@@ -33,6 +33,9 @@ public class UserRestController{
     private UserDAO userDAO;
 
     @Autowired
+    private ScheduleRepository scheduleRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -43,6 +46,12 @@ public class UserRestController{
 
     @Autowired
     private PatientRepository patientRepository;
+
+    @GetMapping("specialties")
+    public ResponseEntity<?> getAllSpecialties() {
+        List<String> allSpecialties = userDAO.getAllSpecialties();
+        return new ResponseEntity<>(allSpecialties, HttpStatus.OK);
+    }
 
 
     @GetMapping("{userId}/profile")
@@ -80,7 +89,7 @@ public class UserRestController{
         Integer authUserId = userDAO.getUserId(username);
         String userRole = userService.getUserRole();
         boolean isAdmin = "ROLE_ADMIN".equals(userRole);
-
+        System.out.println("Received User: " + user);
         // Fetch the user to be edited
         User the_user = (User) userService.getUser(userId);
 
@@ -227,7 +236,9 @@ public class UserRestController{
                 processedIds.add(schedule.getId());
             } else {
                 schedule.setDoctor(doctor);
-                doctor.getSchedules().add(schedule);
+                Schedule savedSchedule = scheduleRepository.save(schedule);
+                doctor.getSchedules().add(savedSchedule);
+                processedIds.add(savedSchedule.getId());
             }
         }
 

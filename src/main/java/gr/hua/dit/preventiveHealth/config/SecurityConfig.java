@@ -53,14 +53,13 @@ public class SecurityConfig{
                                                 .authenticationEntryPoint(unauthorizedHandler))
                                         .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/v3/api-docs/**", "/v2/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                                                .requestMatchers("/api/auth/**","/actuator/health/**", "/api/user/**", "api/**").permitAll()
+                                                .requestMatchers("/api/auth/**","/actuator/health/**", "/api/user/**").permitAll()
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                                 .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .logout((logout) -> logout.permitAll());
 
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

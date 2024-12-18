@@ -8,6 +8,9 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collections;
+import java.util.List;
+
 @Repository
 public class UserDAOImpl implements UserDAO{
 
@@ -35,6 +38,19 @@ public class UserDAOImpl implements UserDAO{
             return null;
         }
     }
+
+    @Override
+    public List<String> getAllSpecialties() {
+        try {
+            List<String> specialties = entityManager.createQuery(
+                            "SELECT d.specialty FROM Doctor d UNION SELECT c.specialties FROM DiagnosticCenter c", String.class)
+                    .getResultList();
+            return specialties;
+        } catch (NoResultException ex) {
+            return Collections.emptyList(); // Return an empty list instead of null
+        }
+    }
+
 
     //save user
     @Transactional
