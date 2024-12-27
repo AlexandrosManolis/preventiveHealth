@@ -47,12 +47,12 @@ public class UserRestController{
     @Autowired
     private PatientRepository patientRepository;
 
-    @GetMapping("specialties")
-    public ResponseEntity<?> getAllSpecialties() {
-        List<String> allSpecialties = userDAO.getAllSpecialties();
-        return new ResponseEntity<>(allSpecialties, HttpStatus.OK);
+    @GetMapping("specialist/{userId}/details")
+    public ResponseEntity<?> specialistDetails(@PathVariable Integer userId) {
+        User user = userDAO.getUserProfile(userId);
+        user.setPassword(null);
+        return new ResponseEntity<>(user, HttpStatus.OK);
     }
-
 
     @GetMapping("{userId}/profile")
     public ResponseEntity<?> userProfile(@PathVariable Integer userId) {
