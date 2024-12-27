@@ -47,6 +47,58 @@ public class UserRestController{
     @Autowired
     private PatientRepository patientRepository;
 
+    @GetMapping("find_specialist")
+    public ResponseEntity<?> getAllSpecialties(@RequestParam (required = false) String specialty) {
+        List<User> allSpecialists = new ArrayList<>();
+        List<Doctor> doctors;
+        List<DiagnosticCenter> diagnostics;
+
+
+        if(specialty == null) {
+            List<String> allSpecialties = userDAO.getAllSpecialties();
+            return new ResponseEntity<>(allSpecialties, HttpStatus.OK);
+        }else if (specialty.equals("all")) {
+            doctors = doctorRepository.findAll();
+            diagnostics = diagnosticRepository.findAll();
+        } else {
+            diagnostics = diagnosticRepository.findBySpecialties(specialty);
+            doctors = doctorRepository.findBySpecialty(specialty);
+        }
+
+        for (Doctor doctor : doctors) {
+            if(doctor.getUser().getRegisterRequest().getStatus() == RegisterRequest.Status.ACCEPTED) {
+                User user = new User();
+                Doctor doctorDetails = new Doctor();
+
+                user.setId(doctor.getUser().getId());
+                user.setRoles(doctor.getUser().getRoles());
+                user.setFullName(doctor.getUser().getFullName());
+                doctorDetails.setAddress(doctor.getAddress());
+                doctorDetails.setSpecialty(doctor.getSpecialty());
+
+                user.setDoctor(doctorDetails);
+                allSpecialists.add(user);
+            }
+        }
+
+        for (DiagnosticCenter diagnostic : diagnostics) {
+            if (diagnostic.getUser().getRegisterRequest().getStatus() == RegisterRequest.Status.ACCEPTED) {
+                User user = new User();
+                DiagnosticCenter diagnosticCenter = new DiagnosticCenter();
+
+                user.setId(diagnostic.getUser().getId());
+                user.setRoles(diagnostic.getUser().getRoles());
+                user.setFullName(diagnostic.getUser().getFullName());
+                diagnosticCenter.setAddress(diagnostic.getAddress());
+                diagnosticCenter.setSpecialties(diagnostic.getSpecialties());
+
+                user.setDiagnosticCenter(diagnosticCenter);
+                allSpecialists.add(user);
+            }
+        }
+        return new ResponseEntity<>(allSpecialists, HttpStatus.OK);
+    }
+
     @GetMapping("specialist/{userId}/details")
     public ResponseEntity<?> specialistDetails(@PathVariable Integer userId) {
         User user = userDAO.getUserProfile(userId);
