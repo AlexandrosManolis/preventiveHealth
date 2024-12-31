@@ -74,6 +74,8 @@ public class UserRestController{
                 user.setRoles(doctor.getUser().getRoles());
                 user.setFullName(doctor.getUser().getFullName());
                 doctorDetails.setAddress(doctor.getAddress());
+                doctorDetails.setCity(doctor.getCity());
+                doctorDetails.setState(doctor.getState());
                 doctorDetails.setSpecialty(doctor.getSpecialty());
 
                 user.setDoctor(doctorDetails);
@@ -90,6 +92,8 @@ public class UserRestController{
                 user.setRoles(diagnostic.getUser().getRoles());
                 user.setFullName(diagnostic.getUser().getFullName());
                 diagnosticCenter.setAddress(diagnostic.getAddress());
+                diagnosticCenter.setCity(diagnostic.getCity());
+                diagnosticCenter.setState(diagnostic.getState());
                 diagnosticCenter.setSpecialties(diagnostic.getSpecialties());
 
                 user.setDiagnosticCenter(diagnosticCenter);
@@ -103,7 +107,13 @@ public class UserRestController{
     public ResponseEntity<?> specialistDetails(@PathVariable Integer userId) {
         User user = userDAO.getUserProfile(userId);
         user.setPassword(null);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+        if(user.getRoles().stream().anyMatch(role-> "ROLE_ADMIN".equals(role.getRoleName()))) {
+            return new ResponseEntity<>("This id is not for a specialist", HttpStatus.BAD_REQUEST);
+        }else if(user.getRoles().stream().anyMatch(role -> "ROLE_PATIENT".equals(role.getRoleName()))) {
+            return new ResponseEntity<>("This id is not for a specialist", HttpStatus.BAD_REQUEST);
+        }else {
+            return new ResponseEntity<>(user, HttpStatus.OK);
+        }
     }
 
     @GetMapping("{userId}/profile")
