@@ -80,6 +80,35 @@ public class AppointmentRestController {
         }
     }
 
+    @GetMapping("{userId}/appointments/{appointmentId}/details")
+    public ResponseEntity<?> getUserAppointmentDetails(@PathVariable Integer userId, @PathVariable Integer appointmentId){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        if(userId.equals(user.getId())){
+            Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow();
+            return new ResponseEntity<>(appointment, HttpStatus.OK);
+        }else{
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+        }
+    }
+
+    @PostMapping("{userId}/appointments/{appointmentId}/cancel")
+    public ResponseEntity<?> cancelAppointment(@PathVariable Integer userId, @PathVariable Integer appointmentId){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        if(userId.equals(user.getId())){
+            Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> new ResourceNotFoundException("Not exist id: "+appointmentId));
+            appointmentRepository.deleteById(appointmentId);
+            return ResponseEntity.ok().body(new MessageResponse("Appointment cancelled"));
+        }else{
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+        }
+    }
+
     @GetMapping("timeslots/{specialistId}")
     public ResponseEntity<?> generateTimeSlots(@PathVariable Integer specialistId, @RequestParam("date") String date) {
         LocalDate requestedDate = LocalDate.parse(date);
