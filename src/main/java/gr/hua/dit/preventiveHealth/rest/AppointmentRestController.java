@@ -1,20 +1,44 @@
 package gr.hua.dit.preventiveHealth.rest;
 
 import gr.hua.dit.preventiveHealth.dao.AppointmentDAO;
+import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
+import gr.hua.dit.preventiveHealth.repository.*;
+import gr.hua.dit.preventiveHealth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
 @RequestMapping("api/appointment")
 public class AppointmentRestController {
+
+    @Autowired
+    private UserDAO userDAO;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private DoctorRepository doctorRepository;
+
+    @Autowired
+    private DiagnosticRepository diagnosticRepository;
+
+    @Autowired
+    private PatientRepository patientRepository;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
     @Autowired
     private AppointmentDAO appointmentDAO;
@@ -53,6 +77,83 @@ public class AppointmentRestController {
                 }
             }
             return new ResponseEntity<>(slots, HttpStatus.OK);
+        }
+    }
+
+    @PostMapping("request/{specialistId}")
+    public ResponseEntity<?> saveAppointmentRequest(@PathVariable Integer specialistId,@RequestBody Appointment appointment){
+
+        //set new appointment request
+        Appointment appointmentRequest = new Appointment();
+
+        //find the role of the specialist
+        User specialist = userDAO.getUserProfile(specialistId);
+        Boolean doctorRole = specialist.getRoles().stream().anyMatch(role -> "ROLE_DOCTOR".equals(role.getRoleName()));
+        Boolean diagnosticRole = specialist.getRoles().stream().anyMatch(role -> "ROLE_DIAGNOSTIC".equals(role.getRoleName()));
+
+        //get patient profile and role
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Integer authUserId = userDAO.getUserId(username);
+        Patient patient = patientRepository.findById(authUserId).orElseThrow(
+                () -> new IllegalArgumentException("Patient not found")
+        );
+        String userRole = userService.getUserRole();
+
+
+        List<Object[]> availableOpeningHours =appointmentDAO.availableOpeningHours(specialistId, appointment.getDate());
+        if(availableOpeningHours.isEmpty()){
+            return ResponseEntity.badRequest().body(new MessageResponse("Doctor is closed the date you requested."));
+        }
+
+        //check if appointment time is in past
+        LocalTime appointmentTime = LocalTime.parse(appointment.getTime(), DateTimeFormatter.ofPattern("HH:mm"));
+
+        if (appointment.getDate().isBefore(LocalDate.now()) ||
+                (appointment.getDate().isEqual(LocalDate.now()) && appointmentTime.isBefore(LocalTime.now()))) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request a past appointment"));
+        }
+
+        if(appointmentDAO.existUnrejectedAppointment(specialistId, appointment.getDate(),appointment.getTime())){
+            return ResponseEntity.ok().body(new MessageResponse("Doctor has already an appointment at this time."));
+        }
+
+        //set the appointment
+        if (userRole.equals("ROLE_PATIENT")) {
+            appointmentRequest.setAppointmentRequestStatus(Appointment.AppointmentRequestStatus.PENDING);
+            appointmentRequest.setAppointmentStatus(Appointment.AppointmentStatus.PENDING);
+            appointmentRequest.setPatient(patient);
+            appointmentRequest.setTime(appointment.getTime());
+            appointmentRequest.setDate(appointment.getDate());
+
+            if(doctorRole){
+                Doctor doctor = doctorRepository.findById(specialistId).orElseThrow(
+                        () -> new IllegalArgumentException("Doctor not found")
+                );
+                if(doctor.getUser().getRegisterRequest().getStatus().equals(RegisterRequest.Status.PENDING) || doctor.getUser().getRegisterRequest().getStatus().equals(RegisterRequest.Status.REJECTED)){
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Doctor will join the platform soon"));
+                }
+                appointmentRequest.setSpecialty(appointment.getSpecialty());
+                appointmentRequest.setDoctor(doctor);
+            }else if(diagnosticRole) {
+                DiagnosticCenter diagnosticCenter = diagnosticRepository.findById(specialistId).orElseThrow(
+                        () -> new IllegalArgumentException("DiagnosticCenter not found")
+                );
+                if(diagnosticCenter.getUser().getRegisterRequest().getStatus().equals(RegisterRequest.Status.PENDING) || diagnosticCenter.getUser().getRegisterRequest().getStatus().equals(RegisterRequest.Status.REJECTED)){
+                    return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request an appointment"));
+                }
+                if (diagnosticCenter.getSpecialties().contains(appointment.getSpecialty())) {
+                    appointmentRequest.setSpecialty(appointment.getSpecialty());
+                }else {
+                    return ResponseEntity.badRequest().body(new MessageResponse("No specialty found"));
+                }
+                appointmentRequest.setDiagnosticCenter(diagnosticCenter);
+
+            }
+            appointmentRepository.save(appointmentRequest);
+            return ResponseEntity.ok().body(new MessageResponse("Appointment request saved successfully"));
+        }else{
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request an appointment"));
         }
     }
 }
