@@ -2,10 +2,8 @@ package gr.hua.dit.preventiveHealth.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -101,4 +99,14 @@ public class Patient{
         this.amka = amka;
     }
 
+    @Override
+    public String toString() {
+        return "Patient{" +
+                "id=" + id +
+                ", user=" + user +
+                ", gender=" + gender +
+                ", birthday=" + birthday +
+                ", amka='" + amka + '\'' +
+                '}';
+    }
 }

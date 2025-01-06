@@ -189,18 +189,18 @@ public class AuthRestController {
         doctor.setState(signupRequest.getState());
         doctor.setSpecialty(signupRequest.getSpecialty());
 
-        List<Schedule> schedules = signupRequest.getSchedules().stream()
-                .map(scheduleRequest -> {
-                    Schedule schedule = new Schedule();
-                    schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
-                    schedule.setStartTime(scheduleRequest.getStartTime());
-                    schedule.setEndTime(scheduleRequest.getEndTime());
-                    schedule.setDoctor(doctor);
-                    return schedule;
+        List<OpeningHours> openingHours = signupRequest.getOpeningHours().stream()
+                .map(openingHourRequest -> {
+                    OpeningHours openingHour = new OpeningHours();
+                    openingHour.setDayOfWeek(openingHourRequest.getDayOfWeek());
+                    openingHour.setStartTime(openingHourRequest.getStartTime());
+                    openingHour.setEndTime(openingHourRequest.getEndTime());
+                    openingHour.setDoctor(doctor);
+                    return openingHour;
                 })
                 .collect(Collectors.toList());
 
-        doctor.setSchedules(schedules);
+        doctor.setOpeningHours(openingHours);
 
         user.setDoctor(doctor);
 
@@ -263,19 +263,19 @@ public class AuthRestController {
         diagnosticCenter.setState(signupRequest.getState());
         diagnosticCenter.setSpecialties(signupRequest.getSpecialties());
 
-        List<Schedule> schedules = signupRequest.getSchedules().stream()
-                .map(scheduleRequest -> {
-                    Schedule schedule = new Schedule();
-                    schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
-                    schedule.setStartTime(scheduleRequest.getStartTime());
-                    schedule.setEndTime(scheduleRequest.getEndTime());
-                    schedule.setDiagnosticCenter(diagnosticCenter);
+        List<OpeningHours> openingHours = signupRequest.getOpeningHours().stream()
+                .map(openingHourRequest -> {
+                    OpeningHours openingHour = new OpeningHours();
+                    openingHour.setDayOfWeek(openingHourRequest.getDayOfWeek());
+                    openingHour.setStartTime(openingHourRequest.getStartTime());
+                    openingHour.setEndTime(openingHourRequest.getEndTime());
+                    openingHour.setDiagnosticCenter(diagnosticCenter);
 
-                    return schedule;
+                    return openingHour;
                 })
                 .collect(Collectors.toList());
 
-        diagnosticCenter.setSchedules(schedules);
+        diagnosticCenter.setOpeningHours(openingHours);
 
         user.setDiagnosticCenter(diagnosticCenter);
 

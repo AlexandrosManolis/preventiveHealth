@@ -22,7 +22,7 @@ public class DiagnosticCenter {
 
     @JsonManagedReference("diagnostic-schedule")
     @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
-    private List<Schedule> schedules;
+    private List<OpeningHours> openingHours;
 
     @OneToOne
     @MapsId
@@ -60,14 +60,14 @@ public class DiagnosticCenter {
     public DiagnosticCenter() {
     }
 
-    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<Schedule> schedules, User user) {
+    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<OpeningHours> openingHours, User user) {
         this.address = address;
         this.city = city;
         this.state = state;
         this.doy = doy;
         this.afm = afm;
         this.specialties = specialties;
-        this.schedules = schedules;
+        this.openingHours = openingHours;
         this.user = user;
     }
 
@@ -119,12 +119,12 @@ public class DiagnosticCenter {
         this.afm = afm;
     }
 
-    public List<Schedule> getSchedules() {
-        return schedules;
+    public List<OpeningHours> getOpeningHours() {
+        return openingHours;
     }
 
-    public void setSchedules(List<Schedule> schedules) {
-        this.schedules = schedules;
+    public void setOpeningHours(List<OpeningHours> openingHours) {
+        this.openingHours = openingHours;
     }
 
     public User getUser() {
@@ -133,5 +133,19 @@ public class DiagnosticCenter {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    @Override
+    public String toString() {
+        return "DiagnosticCenter{" +
+                "id=" + id +
+                ", openingHours=" + openingHours +
+                ", address='" + address + '\'' +
+                ", city='" + city + '\'' +
+                ", state='" + state + '\'' +
+                ", doy='" + doy + '\'' +
+                ", afm='" + afm + '\'' +
+                ", specialties=" + specialties +
+                '}';
     }
 }

@@ -33,7 +33,7 @@ public class UserRestController{
     private UserDAO userDAO;
 
     @Autowired
-    private ScheduleRepository scheduleRepository;
+    private OpeningHoursRepository openingHoursRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -107,12 +107,13 @@ public class UserRestController{
     public ResponseEntity<?> specialistDetails(@PathVariable Integer userId) {
         User user = userDAO.getUserProfile(userId);
         user.setPassword(null);
-        if(user.getRoles().stream().anyMatch(role-> "ROLE_ADMIN".equals(role.getRoleName()))) {
-            return new ResponseEntity<>("This id is not for a specialist", HttpStatus.BAD_REQUEST);
-        }else if(user.getRoles().stream().anyMatch(role -> "ROLE_PATIENT".equals(role.getRoleName()))) {
-            return new ResponseEntity<>("This id is not for a specialist", HttpStatus.BAD_REQUEST);
-        }else {
-            return new ResponseEntity<>(user, HttpStatus.OK);
+
+        if (user.getRoles().stream().anyMatch(role -> "ROLE_ADMIN".equals(role.getRoleName()))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This id is not for a specialist"));
+        } else if (user.getRoles().stream().anyMatch(role -> "ROLE_PATIENT".equals(role.getRoleName()))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This id is not for a specialist"));
+        } else {
+            return ResponseEntity.ok(user);
         }
     }
 
@@ -120,9 +121,9 @@ public class UserRestController{
     public ResponseEntity<?> userProfile(@PathVariable Integer userId) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName(); // Get authenticated username
-        String userRole = userService.getUserRole(); // Get authenticated user's role
-        Integer authUserId = userDAO.getUserId(username); // Fetch authenticated user's ID
+        String username = authentication.getName();
+        String userRole = userService.getUserRole();
+        Integer authUserId = userDAO.getUserId(username);
 
         User user = userDAO.getUserProfile(userId);
 
@@ -246,7 +247,7 @@ public class UserRestController{
         doctor.setDoy(user.getDoctor().getDoy());
         doctor.setAfm(user.getDoctor().getAfm());
 
-        handleDoctorSchedulesUpdate(doctor, user.getDoctor().getSchedules());
+        handleDoctorOpeningHoursUpdate(doctor, user.getDoctor().getOpeningHours());
 
         if (user.getRegisterRequest() != null) {
             handleRegisterRequestUpdate(the_user, user.getRegisterRequest());
@@ -269,7 +270,7 @@ public class UserRestController{
             diagnostic.setSpecialties(user.getDiagnosticCenter().getSpecialties());
         }
 
-        handleDiagnosticCenterSchedulesUpdate(diagnostic, user.getDiagnosticCenter().getSchedules());
+        handleDiagnosticCenterOpeningHoursUpdate(diagnostic, user.getDiagnosticCenter().getOpeningHours());
 
         if (user.getRegisterRequest() != null) {
             handleRegisterRequestUpdate(the_user, user.getRegisterRequest());
@@ -279,58 +280,58 @@ public class UserRestController{
         the_user.setDiagnosticCenter(diagnostic);
     }
 
-    private void handleDoctorSchedulesUpdate(Doctor doctor, List<Schedule> schedules) {
-        if (schedules == null) return;
+    private void handleDoctorOpeningHoursUpdate(Doctor doctor, List<OpeningHours> openingHours) {
+        if (openingHours == null) return;
 
-        List<Schedule> existingSchedules = doctor.getSchedules();
-        Map<Integer, Schedule> existingScheduleMap = existingSchedules.stream()
+        List<OpeningHours> existingOpeningHours = doctor.getOpeningHours();
+        Map<Integer, OpeningHours> existingOpeningHoursMap = existingOpeningHours.stream()
                 .filter(schedule -> schedule.getId() != null)
-                .collect(Collectors.toMap(Schedule::getId, schedule -> schedule));
+                .collect(Collectors.toMap(OpeningHours::getId, schedule -> schedule));
 
         Set<Integer> processedIds = new HashSet<>();
 
-        for (Schedule schedule : schedules) {
-            if (schedule.getId() != null && existingScheduleMap.containsKey(schedule.getId())) {
-                Schedule existingSchedule = existingScheduleMap.get(schedule.getId());
-                existingSchedule.setDayOfWeek(schedule.getDayOfWeek());
-                existingSchedule.setStartTime(schedule.getStartTime());
-                existingSchedule.setEndTime(schedule.getEndTime());
+        for (OpeningHours schedule : openingHours) {
+            if (schedule.getId() != null && existingOpeningHoursMap.containsKey(schedule.getId())) {
+                OpeningHours existingOpeningHour = existingOpeningHoursMap.get(schedule.getId());
+                existingOpeningHour.setDayOfWeek(schedule.getDayOfWeek());
+                existingOpeningHour.setStartTime(schedule.getStartTime());
+                existingOpeningHour.setEndTime(schedule.getEndTime());
                 processedIds.add(schedule.getId());
             } else {
                 schedule.setDoctor(doctor);
-                Schedule savedSchedule = scheduleRepository.save(schedule);
-                doctor.getSchedules().add(savedSchedule);
+                OpeningHours savedSchedule = openingHoursRepository.save(schedule);
+                doctor.getOpeningHours().add(savedSchedule);
                 processedIds.add(savedSchedule.getId());
             }
         }
 
-        existingSchedules.removeIf(schedule -> !processedIds.contains(schedule.getId()));
+        existingOpeningHours.removeIf(schedule -> !processedIds.contains(schedule.getId()));
     }
 
-    private void handleDiagnosticCenterSchedulesUpdate(DiagnosticCenter diagnostic, List<Schedule> schedules) {
-        if (schedules == null) return;
+    private void handleDiagnosticCenterOpeningHoursUpdate(DiagnosticCenter diagnostic, List<OpeningHours> openingHours) {
+        if (openingHours == null) return;
 
-        List<Schedule> existingSchedules = diagnostic.getSchedules();
-        Map<Integer, Schedule> existingScheduleMap = existingSchedules.stream()
-                .filter(schedule -> schedule.getId() != null)
-                .collect(Collectors.toMap(Schedule::getId, schedule -> schedule));
+        List<OpeningHours> existingOpeningHours = diagnostic.getOpeningHours();
+        Map<Integer, OpeningHours> existingOpeningHoursMap = existingOpeningHours.stream()
+                .filter(openingHour -> openingHour.getId() != null)
+                .collect(Collectors.toMap(OpeningHours::getId, openingHour -> openingHour));
 
         Set<Integer> processedIds = new HashSet<>();
 
-        for (Schedule schedule : schedules) {
-            if (schedule.getId() != null && existingScheduleMap.containsKey(schedule.getId())) {
-                Schedule existingSchedule = existingScheduleMap.get(schedule.getId());
-                existingSchedule.setDayOfWeek(schedule.getDayOfWeek());
-                existingSchedule.setStartTime(schedule.getStartTime());
-                existingSchedule.setEndTime(schedule.getEndTime());
-                processedIds.add(schedule.getId());
+        for (OpeningHours openingHour : openingHours) {
+            if (openingHour.getId() != null && existingOpeningHoursMap.containsKey(openingHour.getId())) {
+                OpeningHours existingOpeningHour = existingOpeningHoursMap.get(openingHour.getId());
+                existingOpeningHour.setDayOfWeek(openingHour.getDayOfWeek());
+                existingOpeningHour.setStartTime(openingHour.getStartTime());
+                existingOpeningHour.setEndTime(openingHour.getEndTime());
+                processedIds.add(openingHour.getId());
             } else {
-                schedule.setDiagnosticCenter(diagnostic);
-                diagnostic.getSchedules().add(schedule);
+                openingHour.setDiagnosticCenter(diagnostic);
+                diagnostic.getOpeningHours().add(openingHour);
             }
         }
 
-        existingSchedules.removeIf(schedule -> !processedIds.contains(schedule.getId()));
+        existingOpeningHours.removeIf(openingHour -> !processedIds.contains(openingHour.getId()));
     }
 
     private void handleRegisterRequestUpdate(User user, RegisterRequest registerRequest) {

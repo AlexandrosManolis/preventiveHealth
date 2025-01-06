@@ -12,8 +12,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 public class UserService implements UserDetailsService {
 
@@ -22,12 +20,6 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private UserDAO userDAO;
-
-    @Transactional
-    public Integer updateUser(User user) {
-        user = userRepository.save(user);
-        return user.getId();
-    }
 
     @Override
     @Transactional
@@ -38,20 +30,9 @@ public class UserService implements UserDetailsService {
         return UserDetailsImpl.build(user);
     }
 
-    //get users
-    @Transactional
-    public List<User> getUsers() {
-        return userRepository.findAll();
-    }
-
     //get user with a specific id
     public Object getUser(Integer userId) {
         return userRepository.findById(userId).get();
-    }
-
-    //get user profile
-    public User getUserProfile(Integer user_id) {
-        return userDAO.getUserProfile(user_id);
     }
 
     //get user's role

@@ -1,7 +1,6 @@
 package gr.hua.dit.preventiveHealth.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -23,7 +22,7 @@ public class Doctor {
 
     @JsonManagedReference("doctor-schedule")
     @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Schedule> schedules;
+    private List<OpeningHours> openingHours;
 
     @OneToOne
     @MapsId
@@ -54,7 +53,7 @@ public class Doctor {
     public Doctor() {
     }
 
-    public Doctor(User user, String address, String city, String specialty, String state, String doy, String afm, List<Schedule> schedules) {
+    public Doctor(User user, String address, String city, String specialty, String state, String doy, String afm, List<OpeningHours> openingHours) {
         this.user = user;
         this.address = address;
         this.city = city;
@@ -62,7 +61,7 @@ public class Doctor {
         this.state = state;
         this.doy = doy;
         this.afm = afm;
-        this.schedules = schedules;
+        this.openingHours = openingHours;
     }
 
     public String getAddress() {
@@ -113,12 +112,12 @@ public class Doctor {
         this.afm = afm;
     }
 
-    public List<Schedule> getSchedules() {
-        return schedules;
+    public List<OpeningHours> getOpeningHours() {
+        return openingHours;
     }
 
-    public void setSchedules(List<Schedule> schedules) {
-        this.schedules = schedules;
+    public void setOpeningHours(List<OpeningHours> openingHours) {
+        this.openingHours = openingHours;
     }
 
     public User getUser() {
@@ -127,5 +126,20 @@ public class Doctor {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    @Override
+    public String toString() {
+        return "Doctor{" +
+                "id=" + id +
+                ", openingHours=" + openingHours +
+                ", user=" + user +
+                ", address='" + address + '\'' +
+                ", city='" + city + '\'' +
+                ", state='" + state + '\'' +
+                ", specialty='" + specialty + '\'' +
+                ", doy='" + doy + '\'' +
+                ", afm='" + afm + '\'' +
+                '}';
     }
 }
