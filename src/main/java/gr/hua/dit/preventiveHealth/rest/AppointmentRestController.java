@@ -7,6 +7,7 @@ import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -42,6 +43,42 @@ public class AppointmentRestController {
 
     @Autowired
     private AppointmentDAO appointmentDAO;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @GetMapping("{userId}/appointments")
+    public ResponseEntity<?> getUserAppointment(@PathVariable Integer userId){
+        List<Appointment> appointments = appointmentRepository.findAll();
+
+        appointments.sort(Comparator.comparing(Appointment::getDate).reversed().thenComparing(Appointment::getTime));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+        String userRole = userService.getUserRole();
+
+        if(userId.equals(user.getId())){
+            List<Appointment> storedAppointments = new ArrayList<>();
+            for(Appointment appointment : appointments){
+
+                if(userRole.equals("ROLE_DOCTOR") || userRole.equals("ROLE_DIAGNOSTIC")){
+                    if(appointment.getDoctor().getUser().getId().equals(userId) || appointment.getDiagnosticCenter().getUser().getId().equals(userId)){
+                        storedAppointments.add(appointment);
+                    }
+                } else if (userRole.equals("ROLE_PATIENT")) {
+                    if(appointment.getPatient().getUser().getId().equals(userId)){
+                        storedAppointments.add(appointment);
+                    }
+                }else {
+                    return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+                }
+            }
+            return ResponseEntity.ok(storedAppointments);
+        }else {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+        }
+    }
 
     @GetMapping("timeslots/{specialistId}")
     public ResponseEntity<?> generateTimeSlots(@PathVariable Integer specialistId, @RequestParam("date") String date) {
