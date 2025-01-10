@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.dao;
 
+import gr.hua.dit.preventiveHealth.entity.RegisterRequest;
 import gr.hua.dit.preventiveHealth.entity.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -43,7 +44,14 @@ public class UserDAOImpl implements UserDAO{
     public List<String> getAllSpecialties() {
         try {
             List<String> specialties = entityManager.createQuery(
-                            "SELECT d.specialty FROM Doctor d UNION SELECT c.specialties FROM DiagnosticCenter c", String.class)
+                            "SELECT DISTINCT d.specialty " +
+                                    "FROM Doctor d JOIN d.user u JOIN RegisterRequest rr ON rr.user = u " +
+                                    "WHERE rr.status = :status " +
+                                    "UNION " +
+                                    "SELECT DISTINCT c.specialties " +
+                                    "FROM DiagnosticCenter c JOIN c.user u JOIN RegisterRequest rr ON rr.user = u " +
+                                    "WHERE rr.status = :status", String.class)
+                    .setParameter("status", RegisterRequest.Status.ACCEPTED)
                     .getResultList();
             return specialties;
         } catch (NoResultException ex) {
