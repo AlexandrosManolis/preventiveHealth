@@ -302,7 +302,7 @@ public class AppointmentRestController {
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request a past appointment"));
         }
 
-        if(appointmentDAO.existUnrejectedAppointment(specialistId, appointment.getDate(),appointment.getTime())){
+        if(appointmentDAO.existUnrejectedAppointment(specialistId, appointment.getDate(),appointment.getTime(),appointment.getSpecialty())){
             return ResponseEntity.ok().body(new MessageResponse("Doctor has already an appointment at this time."));
         }
 
@@ -313,6 +313,7 @@ public class AppointmentRestController {
             appointmentRequest.setPatient(patient);
             appointmentRequest.setTime(appointment.getTime());
             appointmentRequest.setDate(appointment.getDate());
+            appointmentRequest.setAppointmentCause(appointment.getAppointmentCause());
 
             if(doctorRole){
                 Doctor doctor = doctorRepository.findById(specialistId).orElseThrow(
