@@ -123,10 +123,31 @@ public class InitialDataService {
                 .forEach(specialty -> specialtiesRepository.save(new Specialties(specialty)));
     }
 
+    private void everyDayCheckAppointments() {
+        List<Appointment> appointments = appointmentRepository.findAll();
+        LocalDate today = LocalDate.now();
+
+        for (Appointment appointment : appointments) {
+
+            if((appointment.getDate().isBefore(today) && appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.PENDING)
+                || (appointment.getDate().isBefore(today.minusDays(7)) && appointment.getAppointmentStatus() == Appointment.AppointmentStatus.PENDING && appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED)) {
+                appointment.setAppointmentRequestStatus(Appointment.AppointmentRequestStatus.REJECTED);
+                appointment.setAppointmentStatus(Appointment.AppointmentStatus.CANCELLED);
+                appointment.setRejectionCause("Rejected due to the appointment's date has already passed.");
+                appointmentRepository.save(appointment);
+            }
+
+            if(appointment.getDate().isBefore(today.minusMonths(1)) && (appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.REJECTED || appointment.getAppointmentStatus() == Appointment.AppointmentStatus.CANCELLED)) {
+                appointmentRepository.delete(appointment);
+            }
+        }
+    }
+
     //when program starts call functions
     @PostConstruct
     public void setup(){
         this.createRolesUsers();
         this.addSpecialties();
+        this.everyDayCheckAppointments();
     }
 }
