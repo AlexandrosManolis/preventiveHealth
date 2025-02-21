@@ -23,14 +23,15 @@ public class AppointmentDAOImpl implements AppointmentDAO {
     private UserRepository userRepository;
 
     @Override
-    public Boolean existUnrejectedAppointment(Integer specialistId, LocalDate date, String time){
+    public Boolean existUnrejectedAppointment(Integer specialistId, LocalDate date, String time, String specialty){
         try {
             Long exists = entityManager.createQuery(
                     "SELECT COUNT(a) FROM Appointment a " +
-                       "WHERE (a.doctor.id =: specialistId OR a.diagnosticCenter.id =: specialistId) AND a.date =: date AND a.time =: time AND (a.appointmentRequestStatus = 'ACCEPTED' OR a.appointmentRequestStatus = 'PENDING') AND (a.appointmentStatus = 'PENDING')", Long.class)
+                       "WHERE (a.doctor.id =: specialistId OR a.diagnosticCenter.id =: specialistId) AND a.date =: date AND a.time =: time AND (a.appointmentRequestStatus = 'ACCEPTED' OR a.appointmentRequestStatus = 'PENDING') AND (a.appointmentStatus = 'PENDING') AND (a.specialty = :specialty)", Long.class)
                     .setParameter("specialistId", specialistId)
                     .setParameter("date", date)
                     .setParameter("time", time)
+                    .setParameter("specialty", specialty)
                     .getSingleResult();
             return exists >0;
         }catch (NoResultException | NonUniqueResultException ex) {
@@ -56,17 +57,35 @@ public class AppointmentDAOImpl implements AppointmentDAO {
     }
 
     @Override
-    public List<Appointment> specialistPendingAppointment(Integer specialistId, LocalDate date) {
+    public List<Appointment> specialistPendingAppointment(Integer specialistId, LocalDate date, String specialty) {
         try {
             return entityManager.createQuery(
                             "SELECT a FROM Appointment a " +
                                     "WHERE (a.diagnosticCenter.id = :specialistId OR a.doctor.id = :specialistId) " +
-                                    "AND a.date = :date  AND (a.appointmentRequestStatus = 'APPROVED' OR a.appointmentRequestStatus = 'PENDING') AND a.appointmentStatus = 'PENDING'"
+                                    "AND a.date = :date  AND (a.appointmentRequestStatus = 'APPROVED' OR a.appointmentRequestStatus = 'PENDING') AND a.appointmentStatus = 'PENDING' AND a.specialty = :specialty"
                             ,Appointment.class)
                     .setParameter("specialistId", specialistId)
                     .setParameter("date", date)
+                    .setParameter("specialty", specialty)
                     .getResultList();
 
+        } catch (NoResultException ex) {
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public List<Appointment> patientPendingAppointments(Integer patientId, LocalDate date) {
+        try {
+            return entityManager.createQuery(
+                            "SELECT a FROM Appointment a " +
+                                    "WHERE a.patient.id = :patientId " +
+                                    "AND a.date = :date " +
+                                    "AND (a.appointmentRequestStatus = 'APPROVED' OR a.appointmentRequestStatus = 'PENDING') " +
+                                    "AND a.appointmentStatus = 'PENDING'", Appointment.class)
+                    .setParameter("patientId", patientId)
+                    .setParameter("date", date)
+                    .getResultList();
         } catch (NoResultException ex) {
             return Collections.emptyList();
         }
