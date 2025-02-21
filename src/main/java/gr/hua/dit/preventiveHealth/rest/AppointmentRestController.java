@@ -345,4 +345,43 @@ public class AppointmentRestController {
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request an appointment"));
         }
     }
+
+    @PostMapping("request/{specialistId}/change")
+    public ResponseEntity<?> changeAppointmentRequest(@PathVariable Integer specialistId,@RequestBody Appointment appointment){
+
+        Appointment existedAppointment = appointmentRepository.findById(appointment.getId()).orElseThrow(() -> new ResourceNotFoundException("Not exist id: "+appointment.getId()));
+        String userRole = userService.getUserRole();
+
+        List<Object[]> availableOpeningHours =appointmentDAO.availableOpeningHours(specialistId, appointment.getDate());
+        if(availableOpeningHours.isEmpty()){
+            return ResponseEntity.badRequest().body(new MessageResponse("Doctor is closed the date you requested."));
+        }
+
+        //check if appointment time is in past
+        LocalTime appointmentTime = LocalTime.parse(appointment.getTime(), DateTimeFormatter.ofPattern("HH:mm"));
+
+        if (appointment.getDate().isBefore(LocalDate.now()) ||
+                (appointment.getDate().isEqual(LocalDate.now()) && appointmentTime.isBefore(LocalTime.now()))) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request a past appointment"));
+        }
+
+        if(appointmentDAO.existUnrejectedAppointment(specialistId, appointment.getDate(),appointment.getTime(),appointment.getSpecialty())){
+            return ResponseEntity.ok().body(new MessageResponse("Doctor has already an appointment at this time."));
+        }
+
+        //set the appointment
+        if (userRole.equals("ROLE_PATIENT")) {
+            existedAppointment.setAppointmentRequestStatus(Appointment.AppointmentRequestStatus.PENDING);
+            existedAppointment.setAppointmentStatus(Appointment.AppointmentStatus.PENDING);
+            existedAppointment.setTime(appointment.getTime());
+            existedAppointment.setDate(appointment.getDate());
+            existedAppointment.setAppointmentCause(appointment.getAppointmentCause());
+            existedAppointment.setRejectionCause(null);
+
+            appointmentRepository.save(existedAppointment);
+            return ResponseEntity.ok().body(new MessageResponse("Appointment request saved successfully"));
+        }else{
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request an appointment"));
+        }
+    }
 }
