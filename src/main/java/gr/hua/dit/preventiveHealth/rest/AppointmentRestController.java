@@ -206,7 +206,7 @@ public class AppointmentRestController {
     }
 
     @GetMapping("timeslots/{specialistId}")
-    public ResponseEntity<?> generateTimeSlots(@PathVariable Integer specialistId, @RequestParam("date") String date) {
+    public ResponseEntity<?> generateTimeSlots(@PathVariable Integer specialistId, @RequestParam("date") String date, @RequestParam("specialty") String specialty) {
         LocalDate requestedDate = LocalDate.parse(date);
 
         List<String> slots = new ArrayList<>();
@@ -220,19 +220,45 @@ public class AppointmentRestController {
         }else{
             Integer startTime = appointmentDAO.convertToMinutes((String) availableOpeningHours.get(0)[0]);
             Integer endTime = appointmentDAO.convertToMinutes((String) availableOpeningHours.get(0)[1]) -20;
-            boolean isToday = LocalDate.now().equals(date);
+            boolean isToday = LocalDate.now().equals(requestedDate);
 
-            List<Appointment> existAppointment = appointmentDAO.specialistPendingAppointment(specialistId, requestedDate);
+            Doctor doctor = doctorRepository.findById(specialistId).orElse(null);
+            DiagnosticCenter diagnostic = diagnosticRepository.findById(specialistId).orElse(null);
+            boolean isSpecialtyValid = false;
 
-            List<Integer> notAvailableTime = existAppointment.stream().map(Appointment::getTime)
+            if (doctor != null) {
+                isSpecialtyValid = doctor.getSpecialty().equalsIgnoreCase(specialty);
+            } else if (diagnostic != null) {
+                isSpecialtyValid = diagnostic.getSpecialties().stream().anyMatch(s -> s.equalsIgnoreCase(specialty));
+            }
+
+            List<Appointment> existingAppointment = new ArrayList<>();
+            if(isSpecialtyValid){
+                existingAppointment = appointmentDAO.specialistPendingAppointment(specialistId, requestedDate, specialty);
+            }
+
+            List<Integer> notAvailableTime = existingAppointment.stream().map(Appointment::getTime)
                     .map(time -> appointmentDAO.convertToMinutes(time)).toList();
+
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            List<Integer> patientBookedTimes = new ArrayList<>();
+
+            if(authentication != null && authentication.isAuthenticated()){
+                String username = authentication.getName();
+                Integer authUserId = userDAO.getUserId(username);
+
+                List<Appointment> patientAppointments = appointmentDAO.patientPendingAppointments(authUserId, requestedDate);
+
+                patientBookedTimes = patientAppointments.stream()
+                        .map(appointment -> appointmentDAO.convertToMinutes(appointment.getTime())).toList();
+            }
 
             for (int time = startTime; time < endTime; time += 30) {
                 final int currentTime = time;
                 boolean isNearUnavailableTime = notAvailableTime.stream()
                         .anyMatch(unavailableTime -> Math.abs(unavailableTime - currentTime) <= 10);
 
-                if ((!isToday || time > nowMinutes) && (!notAvailableTime.contains(time)) && (!isNearUnavailableTime)) {
+                if ((!isToday || time > nowMinutes) && (!notAvailableTime.contains(time)) && (!isNearUnavailableTime) && (!patientBookedTimes.contains(time))) {
                     String hours = String.format("%02d", time / 60);
                     String minutes = String.format("%02d", time % 60);
                     slots.add(hours + ":" + minutes);
