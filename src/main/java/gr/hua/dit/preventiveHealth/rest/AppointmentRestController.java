@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("api/appointment")
 public class AppointmentRestController {
@@ -46,25 +48,39 @@ public class AppointmentRestController {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
     @GetMapping("{userId}/appointments")
     public ResponseEntity<?> getUserAppointment(@PathVariable Integer userId){
-        List<Appointment> appointments = appointmentRepository.findAll();
-
-        appointments.sort(Comparator.comparing(Appointment::getDate).reversed().thenComparing(Appointment::getTime));
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElseThrow();
         String userRole = userService.getUserRole();
+
+        List<Appointment> appointments = new ArrayList<>();
+        if(userRole.equals("ROLE_DOCTOR")){
+            appointments = appointmentRepository.findByDoctorId(userId);
+        } else if (userRole.equals("ROLE_PATIENT")) {
+            appointments = appointmentRepository.findByPatientId(userId);
+        } else if (userRole.equals("ROLE_DIAGNOSTIC")) {
+            appointments = appointmentRepository.findByDiagnosticCenterId(userId);
+        } else if (userRole.equals("ROLE_ADMIN")) {
+            appointments = appointmentRepository.findAll();
+        }
+        appointments.sort(Comparator.comparing(Appointment::getDate).reversed().thenComparing(Appointment::getTime));
+
 
         if(userId.equals(user.getId())){
             List<Appointment> storedAppointments = new ArrayList<>();
             for(Appointment appointment : appointments){
 
                 if(userRole.equals("ROLE_DOCTOR") || userRole.equals("ROLE_DIAGNOSTIC")){
-                    if(appointment.getDoctor().getUser().getId().equals(userId) || appointment.getDiagnosticCenter().getUser().getId().equals(userId)){
-                        storedAppointments.add(appointment);
+                    if ((appointment.getDoctor() != null && appointment.getDoctor().getUser().getId().equals(userId)) ||
+                            (appointment.getDiagnosticCenter() != null && appointment.getDiagnosticCenter().getUser().getId().equals(userId))) {
+                        if(appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED || (appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED && appointment.getAppointmentStatus() == Appointment.AppointmentStatus.CANCELLED)){
+                            storedAppointments.add(appointment);
+                        }
                     }
                 } else if (userRole.equals("ROLE_PATIENT")) {
                     if(appointment.getPatient().getUser().getId().equals(userId)){
