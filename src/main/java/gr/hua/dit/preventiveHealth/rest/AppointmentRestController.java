@@ -96,6 +96,36 @@ public class AppointmentRestController {
         }
     }
 
+    @GetMapping("{userId}/pendingAppointments")
+    public ResponseEntity<?> getPendingAppointment(@PathVariable Integer userId){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Integer authenticatedId = userDAO.getUserId(username);
+        String userRole = userService.getUserRole();
+
+        List<Appointment> appointments= new ArrayList<>();
+        try {
+            if(authenticatedId.equals(userId) && userRole.equals("ROLE_DOCTOR")){
+                List<Appointment> allAppointments = appointmentRepository.findByDoctorId(userId);
+                for(Appointment appointment : allAppointments){
+                    if(appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.PENDING){
+                        appointments.add(appointment);
+                    }
+                }
+            }else if (authenticatedId.equals(userId) && userRole.equals("ROLE_DIAGNOSTIC")){
+                List<Appointment> allAppointments = appointmentRepository.findByDiagnosticCenterId(userId);
+                for(Appointment appointment : allAppointments){
+                    if(appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.PENDING){
+                        appointments.add(appointment);
+                    }
+                }
+            }
+            return ResponseEntity.ok(appointments);
+        }catch (Exception err){
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
     @GetMapping("{userId}/appointments/{appointmentId}/details")
     public ResponseEntity<?> getUserAppointmentDetails(@PathVariable Integer userId, @PathVariable Integer appointmentId){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
