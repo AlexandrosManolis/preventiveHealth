@@ -12,9 +12,7 @@ import gr.hua.dit.preventiveHealth.payload.validation.Create;
 import gr.hua.dit.preventiveHealth.repository.RegisterRequestRepository;
 import gr.hua.dit.preventiveHealth.repository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.UserRepository;
-import gr.hua.dit.preventiveHealth.service.RegisterRequestService;
 import gr.hua.dit.preventiveHealth.service.UserDetailsImpl;
-import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -42,9 +40,6 @@ public class AuthRestController {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -55,8 +50,6 @@ public class AuthRestController {
 
     @Autowired
     private JwtUtils jwtUtils;
-    @Autowired
-    private RegisterRequestService registerRequestService;
 
     //check username and password and if they are right set token and enter the platform
     @PostMapping("signin")

@@ -46,6 +46,8 @@ public class UserRestController{
 
     @Autowired
     private PatientRepository patientRepository;
+    @Autowired
+    private SpecialtiesRepository specialtiesRepository;
 
     @GetMapping("find_specialist")
     public ResponseEntity<?> getAllSpecialties(@RequestParam (required = false) String specialty) {
@@ -115,6 +117,12 @@ public class UserRestController{
         } else {
             return ResponseEntity.ok(user);
         }
+    }
+
+    @GetMapping("specialties")
+    public ResponseEntity<?> getAllSpecialties() {
+        List<Specialties> specialties = specialtiesRepository.findAll();
+        return new ResponseEntity<>(specialties, HttpStatus.OK);
     }
 
     @GetMapping("{userId}/profile")
@@ -289,6 +297,8 @@ public class UserRestController{
                 .collect(Collectors.toMap(OpeningHours::getId, schedule -> schedule));
 
         Set<Integer> processedIds = new HashSet<>();
+        List<OpeningHours> updatedOpeningHours = new ArrayList<>();
+
 
         for (OpeningHours schedule : openingHours) {
             if (schedule.getId() != null && existingOpeningHoursMap.containsKey(schedule.getId())) {
@@ -297,15 +307,22 @@ public class UserRestController{
                 existingOpeningHour.setStartTime(schedule.getStartTime());
                 existingOpeningHour.setEndTime(schedule.getEndTime());
                 processedIds.add(schedule.getId());
+                updatedOpeningHours.add(existingOpeningHour);
             } else {
                 schedule.setDoctor(doctor);
                 OpeningHours savedSchedule = openingHoursRepository.save(schedule);
                 doctor.getOpeningHours().add(savedSchedule);
                 processedIds.add(savedSchedule.getId());
+                updatedOpeningHours.add(savedSchedule);
             }
         }
 
-        existingOpeningHours.removeIf(schedule -> !processedIds.contains(schedule.getId()));
+        for (OpeningHours existingOpeningHour : existingOpeningHours) {
+            if (existingOpeningHour.getId() != null && !processedIds.contains(existingOpeningHour.getId())) {
+                openingHoursRepository.delete(existingOpeningHour); // Delete from database
+            }
+        }
+        doctor.setOpeningHours(updatedOpeningHours);
     }
 
     private void handleDiagnosticCenterOpeningHoursUpdate(DiagnosticCenter diagnostic, List<OpeningHours> openingHours) {
@@ -318,21 +335,35 @@ public class UserRestController{
 
         Set<Integer> processedIds = new HashSet<>();
 
+        List<OpeningHours> updatedOpeningHours = new ArrayList<>();
+
         for (OpeningHours openingHour : openingHours) {
             if (openingHour.getId() != null && existingOpeningHoursMap.containsKey(openingHour.getId())) {
+                // Update existing entry
                 OpeningHours existingOpeningHour = existingOpeningHoursMap.get(openingHour.getId());
                 existingOpeningHour.setDayOfWeek(openingHour.getDayOfWeek());
                 existingOpeningHour.setStartTime(openingHour.getStartTime());
                 existingOpeningHour.setEndTime(openingHour.getEndTime());
                 processedIds.add(openingHour.getId());
+                updatedOpeningHours.add(existingOpeningHour);
             } else {
+                // Insert new entry
                 openingHour.setDiagnosticCenter(diagnostic);
-                diagnostic.getOpeningHours().add(openingHour);
+                OpeningHours savedOpeningHour = openingHoursRepository.save(openingHour);
+                processedIds.add(savedOpeningHour.getId());
+                updatedOpeningHours.add(savedOpeningHour);
             }
         }
 
-        existingOpeningHours.removeIf(openingHour -> !processedIds.contains(openingHour.getId()));
+        // Remove unprocessed entries (deletions)
+        for (OpeningHours existingOpeningHour : existingOpeningHours) {
+            if (existingOpeningHour.getId() != null && !processedIds.contains(existingOpeningHour.getId())) {
+                openingHoursRepository.delete(existingOpeningHour); // Delete from database
+            }
+        }
+        diagnostic.setOpeningHours(updatedOpeningHours);
     }
+
 
     private void handleRegisterRequestUpdate(User user, RegisterRequest registerRequest) {
         if (registerRequest.getId() != null) {
