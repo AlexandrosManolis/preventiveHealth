@@ -173,6 +173,38 @@ public class AppointmentRestController {
         }
     }
 
+    @PostMapping("{userId}/appointments/{appointmentId}/accept")
+    public ResponseEntity<?> acceptAppointment(@PathVariable Integer userId, @PathVariable Integer appointmentId){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        String userRole = userService.getUserRole();
+        Integer authenticatedId = userDAO.getUserId(username);
+
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> new ResourceNotFoundException("Not exist id: "+appointmentId));
+        boolean isAuthorizedDoctor = false;
+        boolean isAuthorizedDiagnostic = false;
+
+        if(userRole.equals("ROLE_DOCTOR") && authenticatedId.equals(userId)){
+            isAuthorizedDoctor = appointment.getDoctor().getUser().getId().equals(userId);
+        } else if (userRole.equals("ROLE_DIAGNOSTIC") && authenticatedId.equals(userId)) {
+            isAuthorizedDiagnostic = appointment.getDiagnosticCenter().getUser().getId().equals(userId);
+        }
+
+        LocalDate today = LocalDate.now();
+
+        if((userId.equals(user.getId()) || isAuthorizedDoctor || isAuthorizedDiagnostic) &&
+                (!appointment.getDate().isBefore(today) && appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.PENDING)){
+
+            appointment.setAppointmentRequestStatus(Appointment.AppointmentRequestStatus.APPROVED);
+
+            appointmentRepository.save(appointment);
+            return ResponseEntity.ok().body(new MessageResponse("Appointment accepted"));
+        }else{
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+        }
+    }
+
     @GetMapping("timeslots/{specialistId}")
     public ResponseEntity<?> generateTimeSlots(@PathVariable Integer specialistId, @RequestParam("date") String date) {
         LocalDate requestedDate = LocalDate.parse(date);
