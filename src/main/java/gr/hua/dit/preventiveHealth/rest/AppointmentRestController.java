@@ -141,14 +141,32 @@ public class AppointmentRestController {
     }
 
     @PostMapping("{userId}/appointments/{appointmentId}/cancel")
-    public ResponseEntity<?> cancelAppointment(@PathVariable Integer userId, @PathVariable Integer appointmentId){
+    public ResponseEntity<?> cancelAppointment(@PathVariable Integer userId, @PathVariable Integer appointmentId, @RequestBody String causeOfRejection){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
+        String userRole = userService.getUserRole();
+        Integer authenticatedId = userDAO.getUserId(username);
 
-        if(userId.equals(user.getId())){
-            Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> new ResourceNotFoundException("Not exist id: "+appointmentId));
-            appointmentRepository.deleteById(appointmentId);
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> new ResourceNotFoundException("Not exist id: "+appointmentId));
+        boolean isAuthorizedDoctor = false;
+        boolean isAuthorizedDiagnostic = false;
+        if(userRole.equals("ROLE_DOCTOR") && authenticatedId.equals(userId)){
+            isAuthorizedDoctor = appointment.getDoctor().getUser().getId().equals(userId);
+        } else if (userRole.equals("ROLE_DIAGNOSTIC") && authenticatedId.equals(userId)) {
+            isAuthorizedDiagnostic = appointment.getDiagnosticCenter().getUser().getId().equals(userId);
+        }
+
+        if(userId.equals(user.getId()) || isAuthorizedDoctor || isAuthorizedDiagnostic){
+            if(appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.PENDING){
+                appointment.setAppointmentRequestStatus(Appointment.AppointmentRequestStatus.REJECTED);
+            }
+            appointment.setAppointmentStatus(Appointment.AppointmentStatus.CANCELLED);
+            if(causeOfRejection == null ){
+                return ResponseEntity.badRequest().body(new MessageResponse("Cause of Rejection is required"));
+            }
+            appointment.setRejectionCause(causeOfRejection);
+            appointmentRepository.save(appointment);
             return ResponseEntity.ok().body(new MessageResponse("Appointment cancelled"));
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
