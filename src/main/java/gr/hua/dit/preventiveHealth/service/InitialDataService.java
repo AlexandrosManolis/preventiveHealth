@@ -1,10 +1,10 @@
 package gr.hua.dit.preventiveHealth.service;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
-import gr.hua.dit.preventiveHealth.entity.Patient;
-import gr.hua.dit.preventiveHealth.entity.Role;
-import gr.hua.dit.preventiveHealth.entity.User;
+import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
 import gr.hua.dit.preventiveHealth.repository.RoleRepository;
+import gr.hua.dit.preventiveHealth.repository.SpecialtiesRepository;
 import gr.hua.dit.preventiveHealth.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 public class InitialDataService {
@@ -31,6 +29,10 @@ public class InitialDataService {
 
     @Autowired
     private UserDAO userDAO;
+    @Autowired
+    private SpecialtiesRepository specialtiesRepository;
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
     @Autowired
     public InitialDataService(UserRepository userRepository,
@@ -92,11 +94,39 @@ public class InitialDataService {
             userRepository.save(user);
             return null;
         });
-
     }
-    //when program starts call createRolesUsers
+
+    private void addSpecialties() {
+        List<String> specialties = Arrays.asList(
+                "Allergist", "Anesthesiologist", "Cardiologist", "Dermatologist", "Emergency Medicine Specialist",
+                "Endocrinologist", "Family Medicine Physician", "Gastroenterologist", "General Surgeon",
+                "Geriatrician", "Hematologist", "Infectious Disease Specialist", "Internist", "Nephrologist",
+                "Neurologist", "Neurosurgeon", "Obstetrician", "Gynecologist", "Oncologist", "Ophthalmologist",
+                "Orthopedic Surgeon", "ENT Specialist", "Pathologist", "Pediatrician", "Physiatrist",
+                "Plastic Surgeon", "Psychiatrist", "Pulmonologist", "Radiologist", "Rheumatologist",
+                "Sports Medicine Specialist", "Thoracic Surgeon", "Urologist", "Vascular Surgeon", "Anaesthesiologist",
+                "Biological Hematologist", "Child Psychiatrist", "Clinical Biologist", "Clinical Chemist",
+                "Clinical Neurophysiologist", "Clinical Radiologist", "Oral and Maxillo-Facial Surgeon", "Dermatologist",
+                "General Hematologist", "General Practitioner", "Immunologist", "Laboratory Medicine Specialist",
+                "Microbiologist", "Neuro-Psychiatrist", "Nuclear Medicine Specialist", "Occupational Medicine Specialist",
+                "Otorhinolaryngologist", "Pediatric Surgeon", "Pharmacologist", "Respiratory Medicine Specialist",
+                "Physical Medicine and Rehabilitation Specialist", "Tropical Medicine Specialist", "Venereologist",
+                "Podiatrist", "Public Health and Preventive Medicine Specialist", "Radiotherapist", "Stomatologist"
+        );
+        List<String> existingSpecialties = specialtiesRepository.findAll()
+                .stream()
+                .map(s -> s.getName().toLowerCase())
+                .toList();
+
+        specialties.stream()
+                .filter(specialty -> !existingSpecialties.contains(specialty.toLowerCase()))
+                .forEach(specialty -> specialtiesRepository.save(new Specialties(specialty)));
+    }
+
+    //when program starts call functions
     @PostConstruct
     public void setup(){
         this.createRolesUsers();
+        this.addSpecialties();
     }
 }
