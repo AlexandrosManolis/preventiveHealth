@@ -43,8 +43,12 @@ public class Appointment {
     @NotNull
     private AppointmentRequestStatus appointmentRequestStatus;
 
+    private String appointmentCause;
 
-    private String description;
+    private String examDescription;
+
+    private String rejectionCause;
+
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "patientId", referencedColumnName = "id")
@@ -91,12 +95,28 @@ public class Appointment {
         this.appointmentRequestStatus = appointmentRequestStatus;
     }
 
-    public String getDescription() {
-        return description;
+    public String getExamDescription() {
+        return examDescription;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setExamDescription(String examDescription) {
+        this.examDescription = examDescription;
+    }
+
+    public String getRejectionCause() {
+        return rejectionCause;
+    }
+
+    public String getAppointmentCause() {
+        return appointmentCause;
+    }
+
+    public void setAppointmentCause(String appointmentCause) {
+        this.appointmentCause = appointmentCause;
+    }
+
+    public void setRejectionCause(String rejectionCause) {
+        this.rejectionCause = rejectionCause;
     }
 
     public LocalDate getDate() {

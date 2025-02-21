@@ -2,6 +2,7 @@ package gr.hua.dit.preventiveHealth.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
@@ -99,11 +100,15 @@ public class Patient{
         this.amka = amka;
     }
 
+    @JsonProperty("fullName")
+    public String getFullName() {
+        return user != null ? user.getFullName() : null;
+    }
+
     @Override
     public String toString() {
         return "Patient{" +
                 "id=" + id +
-                ", user=" + user +
                 ", gender=" + gender +
                 ", birthday=" + birthday +
                 ", amka='" + amka + '\'' +

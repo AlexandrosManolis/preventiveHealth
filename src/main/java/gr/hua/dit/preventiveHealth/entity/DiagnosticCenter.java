@@ -2,6 +2,7 @@ package gr.hua.dit.preventiveHealth.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -71,6 +72,14 @@ public class DiagnosticCenter {
         this.user = user;
     }
 
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
     public String getCity() {
         return city;
     }
@@ -133,6 +142,11 @@ public class DiagnosticCenter {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    @JsonProperty("fullName") // Explicitly include in JSON
+    public String getFullName() {
+        return user != null ? user.getFullName() : null;
     }
 
     @Override

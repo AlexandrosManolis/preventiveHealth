@@ -2,6 +2,7 @@ package gr.hua.dit.preventiveHealth.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -62,6 +63,14 @@ public class Doctor {
         this.doy = doy;
         this.afm = afm;
         this.openingHours = openingHours;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getAddress() {
@@ -128,12 +137,16 @@ public class Doctor {
         this.user = user;
     }
 
+    @JsonProperty("fullName") // Explicitly include in JSON
+    public String getFullName() {
+        return user != null ? user.getFullName() : null;
+    }
+
     @Override
     public String toString() {
         return "Doctor{" +
                 "id=" + id +
                 ", openingHours=" + openingHours +
-                ", user=" + user +
                 ", address='" + address + '\'' +
                 ", city='" + city + '\'' +
                 ", state='" + state + '\'' +
