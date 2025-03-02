@@ -3,18 +3,27 @@ package gr.hua.dit.preventiveHealth.rest;
 import gr.hua.dit.preventiveHealth.dao.AppointmentDAO;
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.payload.request.CompleteAppointmentRequest;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
+import gr.hua.dit.preventiveHealth.service.MedicalExamService;
+import gr.hua.dit.preventiveHealth.service.MinioService;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -50,9 +59,53 @@ public class AppointmentRestController {
     private UserRepository userRepository;
     @Autowired
     private AuthenticationManager authenticationManager;
+    @Autowired
+    private MedicalExamService medicalExamService;
+    @Autowired
+    private MinioService minioService;
 
-    @GetMapping("{userId}/appointments")
-    public ResponseEntity<?> getUserAppointment(@PathVariable Integer userId){
+    @GetMapping("{userId}/allAppointments")
+    public ResponseEntity<?> getAllAppointments(@PathVariable Integer userId){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+        String userRole = userService.getUserRole();
+
+        List<Appointment> appointments = new ArrayList<>();
+        if(userRole.equals("ROLE_DOCTOR")){
+            appointments = appointmentRepository.findByDoctorId(userId);
+        } else if (userRole.equals("ROLE_DIAGNOSTIC")) {
+            appointments = appointmentRepository.findByDiagnosticCenterId(userId);
+        } else if (userRole.equals("ROLE_ADMIN")) {
+            appointments = appointmentRepository.findAll();
+        }
+        appointments.sort(Comparator.comparing(Appointment::getDate).reversed().thenComparing(Appointment::getTime));
+
+
+        if(userId.equals(user.getId())){
+            List<Map<String, Object>> storedAppointments = new ArrayList<>();
+
+            for (Appointment appointment : appointments) {
+                if (userRole.equals("ROLE_DOCTOR") || userRole.equals("ROLE_DIAGNOSTIC")) {
+                    if ((appointment.getDoctor() != null && appointment.getDoctor().getUser().getId().equals(userId)) ||
+                            (appointment.getDiagnosticCenter() != null && appointment.getDiagnosticCenter().getUser().getId().equals(userId))) {
+
+                        Map<String, Object> appointmentData = new HashMap<>();
+                        appointmentData.put("date", appointment.getDate());
+                        appointmentData.put("appointmentStatus", appointment.getAppointmentStatus());
+
+                        storedAppointments.add(appointmentData);
+                    }
+                }
+            }
+            return ResponseEntity.ok(storedAppointments);
+        }else {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+        }
+    }
+
+    @GetMapping("{userId}/medicalRecord")
+    public ResponseEntity<?> getCompletedAppointments(@PathVariable Integer userId){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElseThrow();
@@ -78,12 +131,57 @@ public class AppointmentRestController {
                 if(userRole.equals("ROLE_DOCTOR") || userRole.equals("ROLE_DIAGNOSTIC")){
                     if ((appointment.getDoctor() != null && appointment.getDoctor().getUser().getId().equals(userId)) ||
                             (appointment.getDiagnosticCenter() != null && appointment.getDiagnosticCenter().getUser().getId().equals(userId))) {
-                        if(appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED || (appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED && appointment.getAppointmentStatus() == Appointment.AppointmentStatus.CANCELLED)){
+                        if(appointment.getAppointmentStatus() == Appointment.AppointmentStatus.COMPLETED ){
                             storedAppointments.add(appointment);
                         }
                     }
                 } else if (userRole.equals("ROLE_PATIENT")) {
-                    if(appointment.getPatient().getUser().getId().equals(userId)){
+                    if(appointment.getPatient().getUser().getId().equals(userId) && appointment.getAppointmentStatus() == Appointment.AppointmentStatus.COMPLETED){
+                        storedAppointments.add(appointment);
+                    }
+                }else {
+                    return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+                }
+            }
+            return ResponseEntity.ok(storedAppointments);
+        }else {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+        }
+    }
+
+    @GetMapping("{userId}/uncompletedAppointments")
+    public ResponseEntity<?> getUncompletedAppointments(@PathVariable Integer userId){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+        String userRole = userService.getUserRole();
+
+        List<Appointment> appointments = new ArrayList<>();
+        if(userRole.equals("ROLE_DOCTOR")){
+            appointments = appointmentRepository.findByDoctorId(userId);
+        } else if (userRole.equals("ROLE_PATIENT")) {
+            appointments = appointmentRepository.findByPatientId(userId);
+        } else if (userRole.equals("ROLE_DIAGNOSTIC")) {
+            appointments = appointmentRepository.findByDiagnosticCenterId(userId);
+        } else if (userRole.equals("ROLE_ADMIN")) {
+            appointments = appointmentRepository.findAll();
+        }
+        appointments.sort(Comparator.comparing(Appointment::getDate).reversed().thenComparing(Appointment::getTime));
+
+
+        if(userId.equals(user.getId())){
+            List<Appointment> storedAppointments = new ArrayList<>();
+            for(Appointment appointment : appointments){
+
+                if(userRole.equals("ROLE_DOCTOR") || userRole.equals("ROLE_DIAGNOSTIC")){
+                    if ((appointment.getDoctor() != null && appointment.getDoctor().getUser().getId().equals(userId)) ||
+                            (appointment.getDiagnosticCenter() != null && appointment.getDiagnosticCenter().getUser().getId().equals(userId))) {
+                        if(appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED && appointment.getAppointmentStatus() != Appointment.AppointmentStatus.COMPLETED){
+                            storedAppointments.add(appointment);
+                        }
+                    }
+                } else if (userRole.equals("ROLE_PATIENT")) {
+                    if(appointment.getPatient().getUser().getId().equals(userId) && appointment.getAppointmentStatus() != Appointment.AppointmentStatus.COMPLETED){
                         storedAppointments.add(appointment);
                     }
                 }else {

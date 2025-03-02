@@ -145,7 +145,7 @@ public class InitialDataService {
 
     //when program starts call functions
     @PostConstruct
-    public void setup(){
+    public void setup() {
         this.createRolesUsers();
         this.addSpecialties();
         this.everyDayCheckAppointments();
