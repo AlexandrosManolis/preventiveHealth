@@ -1,11 +1,14 @@
 package gr.hua.dit.preventiveHealth.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import gr.hua.dit.preventiveHealth.entity.users.DiagnosticCenter;
+import gr.hua.dit.preventiveHealth.entity.users.Doctor;
+import gr.hua.dit.preventiveHealth.entity.users.Patient;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 
@@ -45,10 +48,30 @@ public class Appointment {
 
     private String appointmentCause;
 
-    private String examDescription;
-
     private String rejectionCause;
 
+    private String diagnosisDescription;
+
+    public enum RecheckNeeded {
+        YES, NO
+    }
+
+    public enum MedicalFileNeeded {
+        YES, NO
+    }
+
+    @Enumerated(EnumType.STRING)
+    private RecheckNeeded recheckNeeded;
+
+    @Enumerated(EnumType.STRING)
+    private MedicalFileNeeded medicalFileNeeded;
+
+    private LocalDate recheckDate;
+
+    @OneToOne
+    @JoinColumn(name = "exam_id", unique = true)
+    @JsonManagedReference
+    private MedicalExam medicalExam;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "patientId", referencedColumnName = "id")
@@ -95,12 +118,12 @@ public class Appointment {
         this.appointmentRequestStatus = appointmentRequestStatus;
     }
 
-    public String getExamDescription() {
-        return examDescription;
+    public String getDiagnosisDescription() {
+        return diagnosisDescription;
     }
 
-    public void setExamDescription(String examDescription) {
-        this.examDescription = examDescription;
+    public void setDiagnosisDescription(String diagnosisDescription) {
+        this.diagnosisDescription = diagnosisDescription;
     }
 
     public String getRejectionCause() {
@@ -165,6 +188,38 @@ public class Appointment {
 
     public void setDiagnosticCenter(DiagnosticCenter diagnosticCenter) {
         this.diagnosticCenter = diagnosticCenter;
+    }
+
+    public RecheckNeeded getRecheckNeeded() {
+        return recheckNeeded;
+    }
+
+    public void setRecheckNeeded(RecheckNeeded recheckNeeded) {
+        this.recheckNeeded = recheckNeeded;
+    }
+
+    public MedicalFileNeeded getMedicalFileNeeded() {
+        return medicalFileNeeded;
+    }
+
+    public void setMedicalFileNeeded(MedicalFileNeeded medicalFileNeeded) {
+        this.medicalFileNeeded = medicalFileNeeded;
+    }
+
+    public LocalDate getRecheckDate() {
+        return recheckDate;
+    }
+
+    public void setRecheckDate(LocalDate recheckDate) {
+        this.recheckDate = recheckDate;
+    }
+
+    public MedicalExam getMedicalExam() {
+        return medicalExam;
+    }
+
+    public void setMedicalExam(MedicalExam medicalExam) {
+        this.medicalExam = medicalExam;
     }
 
     @Override

@@ -308,6 +308,46 @@ public class AppointmentRestController {
         }
     }
 
+    @PostMapping("{userId}/appointments/{appointmentId}/complete")
+    public ResponseEntity<?> completeAppointment(@PathVariable Integer userId, @PathVariable Integer appointmentId, @ModelAttribute CompleteAppointmentRequest completeAppointmentRequest){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        String userRole = userService.getUserRole();
+        Integer authenticatedId = userDAO.getUserId(username);
+
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> new ResourceNotFoundException("Not exist id: "+appointmentId));
+        boolean isAuthorizedDoctor = false;
+        boolean isAuthorizedDiagnostic = false;
+
+        if(userRole.equals("ROLE_DOCTOR") && authenticatedId.equals(userId)){
+            isAuthorizedDoctor = appointment.getDoctor().getUser().getId().equals(userId);
+        } else if (userRole.equals("ROLE_DIAGNOSTIC") && authenticatedId.equals(userId)) {
+            isAuthorizedDiagnostic = appointment.getDiagnosticCenter().getUser().getId().equals(userId);
+        }
+
+        if(userId.equals(user.getId()) || isAuthorizedDoctor || isAuthorizedDiagnostic){
+            if(completeAppointmentRequest.getDiagnosisDescription().isEmpty() || completeAppointmentRequest.getMedicalFileNeeded() == null || completeAppointmentRequest.getRecheckNeeded() == null){
+                return ResponseEntity.badRequest().body(new MessageResponse("Diagnosis description or exam, recheck needed are required"));
+            }
+            if (appointment.getAppointmentStatus() == Appointment.AppointmentStatus.PENDING) {
+                appointment.setAppointmentStatus(Appointment.AppointmentStatus.COMPLETED);
+
+                appointment.setDiagnosisDescription(completeAppointmentRequest.getDiagnosisDescription());
+                appointment.setRecheckNeeded(completeAppointmentRequest.getRecheckNeeded());
+                appointment.setMedicalFileNeeded(completeAppointmentRequest.getMedicalFileNeeded());
+                appointment.setRecheckDate(completeAppointmentRequest.getRecheckDate());
+            }else if(appointment.getAppointmentStatus() == Appointment.AppointmentStatus.COMPLETED){
+                appointment.setDiagnosisDescription(completeAppointmentRequest.getDiagnosisDescription());
+            }
+
+            appointmentRepository.save(appointment);
+            return ResponseEntity.ok().body(new MessageResponse("Appointment accepted"));
+        }else{
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
+        }
+    }
+
     @GetMapping("timeslots/{specialistId}")
     public ResponseEntity<?> generateTimeSlots(@PathVariable Integer specialistId, @RequestParam("date") String date, @RequestParam("specialty") String specialty) {
         LocalDate requestedDate = LocalDate.parse(date);
