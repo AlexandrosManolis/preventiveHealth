@@ -1,12 +1,12 @@
 package gr.hua.dit.preventiveHealth.payload.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import gr.hua.dit.preventiveHealth.entity.Patient;
-import gr.hua.dit.preventiveHealth.entity.Role;
+import gr.hua.dit.preventiveHealth.entity.users.Patient;
+import gr.hua.dit.preventiveHealth.entity.users.Role;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.*;
-import org.springframework.format.annotation.DateTimeFormat;
+
 import java.time.LocalDate;
 import java.util.Set;
 

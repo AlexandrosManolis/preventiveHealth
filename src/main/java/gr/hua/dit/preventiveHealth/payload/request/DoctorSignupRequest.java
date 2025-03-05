@@ -1,7 +1,7 @@
 package gr.hua.dit.preventiveHealth.payload.request;
 
-import gr.hua.dit.preventiveHealth.entity.Role;
-import gr.hua.dit.preventiveHealth.entity.Schedule;
+import gr.hua.dit.preventiveHealth.entity.users.Role;
+import gr.hua.dit.preventiveHealth.entity.users.OpeningHours;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -32,7 +32,7 @@ public class DoctorSignupRequest {
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String afm;
 
-    private List<Schedule> schedules;
+    private List<OpeningHours> openingHours;
 
     @NotBlank
     @Size(max = 20)
@@ -150,11 +150,11 @@ public class DoctorSignupRequest {
         this.afm = afm;
     }
 
-    public List<Schedule> getSchedules() {
-        return schedules;
+    public List<OpeningHours> getOpeningHours() {
+        return openingHours;
     }
 
-    public void setSchedules(List<Schedule> schedules) {
-        this.schedules = schedules;
+    public void setOpeningHours(List<OpeningHours> openingHours) {
+        this.openingHours = openingHours;
     }
 }

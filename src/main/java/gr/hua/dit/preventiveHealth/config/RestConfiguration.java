@@ -1,7 +1,7 @@
 package gr.hua.dit.preventiveHealth.config;
 
-import gr.hua.dit.preventiveHealth.entity.Role;
-import gr.hua.dit.preventiveHealth.entity.User;
+import gr.hua.dit.preventiveHealth.entity.users.Role;
+import gr.hua.dit.preventiveHealth.entity.users.User;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.rest.core.config.RepositoryRestConfiguration;
 import org.springframework.data.rest.webmvc.config.RepositoryRestConfigurer;
