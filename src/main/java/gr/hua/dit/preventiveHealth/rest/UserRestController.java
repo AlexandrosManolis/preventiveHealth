@@ -2,8 +2,10 @@ package gr.hua.dit.preventiveHealth.rest;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +16,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import gr.hua.dit.preventiveHealth.payload.validation.Update;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -33,7 +34,7 @@ public class UserRestController{
     private UserDAO userDAO;
 
     @Autowired
-    private ScheduleRepository scheduleRepository;
+    private OpeningHoursRepository openingHoursRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -46,23 +47,52 @@ public class UserRestController{
 
     @Autowired
     private PatientRepository patientRepository;
+    @Autowired
+    private SpecialtiesRepository specialtiesRepository;
+
+    @Autowired
+    private RatingSpecialistRepository ratingSpecialistRepository;
 
     @GetMapping("find_specialist")
-    public ResponseEntity<?> getAllSpecialties(@RequestParam (required = false) String specialty) {
+    public ResponseEntity<?> getAllSpecialties(@RequestParam (required = false) String specialty, @RequestParam (required = false) String speciality_min, @RequestParam (required = false) String city) {
         List<User> allSpecialists = new ArrayList<>();
-        List<Doctor> doctors;
-        List<DiagnosticCenter> diagnostics;
+        List<Doctor> doctors = new ArrayList<>();
+        List<DiagnosticCenter> diagnostics = new ArrayList<>();
 
 
-        if(specialty == null) {
+        if(specialty == null || city == null) {
             List<String> allSpecialties = userDAO.getAllSpecialties();
-            return new ResponseEntity<>(allSpecialties, HttpStatus.OK);
-        }else if (specialty.equals("all")) {
+            List<String> allcities = userDAO.getAllCities();
+            Map<String, List> cityAndSpecialty = new HashMap<>();
+            cityAndSpecialty.put("allSpecialties", allSpecialties);
+            cityAndSpecialty.put("allcities", allcities);
+            return new ResponseEntity<>(cityAndSpecialty, HttpStatus.OK);
+        }else if (specialty.equals("all") && city.equals("all")) {
             doctors = doctorRepository.findAll();
             diagnostics = diagnosticRepository.findAll();
-        } else {
+        } else if (!specialty.equals("all") && city.equals("all")) {
             diagnostics = diagnosticRepository.findBySpecialties(specialty);
             doctors = doctorRepository.findBySpecialty(specialty);
+        } else if (specialty.equals("all") && !city.equals("all")) {
+            diagnostics = diagnosticRepository.findByCity(city);
+            doctors = doctorRepository.findByCity(city);
+        } else {
+            List<Doctor> doctorsBySpecialty;
+            List<DiagnosticCenter> diagnosticsBySpecialty;
+
+            diagnosticsBySpecialty = diagnosticRepository.findBySpecialties(specialty);
+            doctorsBySpecialty = doctorRepository.findBySpecialty(specialty);
+
+            for (Doctor doctor : doctorsBySpecialty) {
+                if(doctor.getCity().equals(city)) {
+                    doctors.add(doctor);
+                }
+            }
+            for (DiagnosticCenter diagnostic : diagnosticsBySpecialty) {
+                if(diagnostic.getCity().equals(city)) {
+                    diagnostics.add(diagnostic);
+                }
+            }
         }
 
         for (Doctor doctor : doctors) {
@@ -107,22 +137,111 @@ public class UserRestController{
     public ResponseEntity<?> specialistDetails(@PathVariable Integer userId) {
         User user = userDAO.getUserProfile(userId);
         user.setPassword(null);
-        if(user.getRoles().stream().anyMatch(role-> "ROLE_ADMIN".equals(role.getRoleName()))) {
-            return new ResponseEntity<>("This id is not for a specialist", HttpStatus.BAD_REQUEST);
-        }else if(user.getRoles().stream().anyMatch(role -> "ROLE_PATIENT".equals(role.getRoleName()))) {
-            return new ResponseEntity<>("This id is not for a specialist", HttpStatus.BAD_REQUEST);
-        }else {
-            return new ResponseEntity<>(user, HttpStatus.OK);
+
+        if (user.getRoles().stream().anyMatch(role -> "ROLE_ADMIN".equals(role.getRoleName()))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This id is not for a specialist"));
+        } else if (user.getRoles().stream().anyMatch(role -> "ROLE_PATIENT".equals(role.getRoleName()))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This id is not for a specialist"));
+        } else {
+            return ResponseEntity.ok(user);
         }
+    }
+
+    @GetMapping("specialist/{userId}/rating")
+    public ResponseEntity<?> specialistRating(@PathVariable Integer userId) {
+        Map<String, Object> response = new HashMap<>();
+
+
+
+        Double averageSpecialistRating = userDAO.averageSpecialistRating(userId);
+
+        if(averageSpecialistRating == null){
+            averageSpecialistRating = 0.0;
+        }
+        response.put("averageSpecialistRating", averageSpecialistRating);
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser") && authentication.getAuthorities().toString().contains("ROLE_PATIENT")) {
+            String username = authentication.getName();
+            Integer patientId = userDAO.getUserId(username);
+
+            User user = userDAO.getUserProfile(userId);
+            String userRole = user.getRoles().stream().anyMatch(role -> role.equals("ROLE_DOCTOR")) ? "ROLE_DOCTOR" : "ROLE_DIAGNOSTIC";
+            Boolean exists;
+            Integer ratingNumber = null;
+
+            if (userRole.equals("ROLE_DOCTOR")) {
+
+                exists = ratingSpecialistRepository.existsByDoctorIdAndPatientId(userId, patientId);
+                if(exists){
+                    ratingNumber = ratingSpecialistRepository.findRatingByDoctorIdAndPatientId(userId, patientId);
+                }
+            }else{
+                exists = ratingSpecialistRepository.existsByDiagnosticCenterIdAndPatientId(userId, patientId);
+                if(exists){
+                    ratingNumber = ratingSpecialistRepository.findRatingByDiagnosticCenterIdAndPatientId(userId, patientId);
+                }
+            }
+
+            response.put("ratingExists", exists);
+            if(exists && ratingNumber != null){
+                response.put("patientRating", ratingNumber);
+            }
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("specialist/{userId}/rating")
+    public ResponseEntity<?> rateSpecialist(@PathVariable Integer userId, @RequestBody RatingSpecialist ratingSpecialist) {
+        User user = userDAO.getUserProfile(userId);
+        String userRole = user.getRoles().stream().anyMatch(role -> role.equals("ROLE_DOCTOR")) ? "ROLE_DOCTOR" : "ROLE_DIAGNOSTIC";
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Integer patientId = userDAO.getUserId(username);
+
+        Patient patient = patientRepository.findById(patientId).orElse(null);
+        Doctor doctor = doctorRepository.findById(userId).orElse(null);
+        DiagnosticCenter diagnosticCenter = diagnosticRepository.findById(userId).orElse(null);
+        Boolean exists;
+
+        if (userRole.equals("ROLE_DOCTOR")) {
+
+            exists = ratingSpecialistRepository.existsByDoctorIdAndPatientId(userId, patientId);
+        }else{
+            exists = ratingSpecialistRepository.existsByDiagnosticCenterIdAndPatientId(userId, patientId);
+        }
+
+        if(exists){
+            throw new IllegalArgumentException("You have already rated this doctor.");
+        }
+        RatingSpecialist newRatingSpecialist = new RatingSpecialist();
+
+        newRatingSpecialist.setRating(ratingSpecialist.getRating());
+        newRatingSpecialist.setRatingDescription(ratingSpecialist.getRatingDescription());
+        newRatingSpecialist.setPatient(patient);
+        newRatingSpecialist.setDoctor(doctor);
+        newRatingSpecialist.setDiagnosticCenter(diagnosticCenter);
+
+        ratingSpecialistRepository.save(newRatingSpecialist);
+
+        return new ResponseEntity<>(newRatingSpecialist, HttpStatus.OK);
+    }
+
+    @GetMapping("specialties")
+    public ResponseEntity<?> getAllSpecialties() {
+        List<Specialties> specialties = specialtiesRepository.findAll();
+        return new ResponseEntity<>(specialties, HttpStatus.OK);
     }
 
     @GetMapping("{userId}/profile")
     public ResponseEntity<?> userProfile(@PathVariable Integer userId) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName(); // Get authenticated username
-        String userRole = userService.getUserRole(); // Get authenticated user's role
-        Integer authUserId = userDAO.getUserId(username); // Fetch authenticated user's ID
+        String username = authentication.getName();
+        String userRole = userService.getUserRole();
+        Integer authUserId = userDAO.getUserId(username);
 
         User user = userDAO.getUserProfile(userId);
 
@@ -246,7 +365,7 @@ public class UserRestController{
         doctor.setDoy(user.getDoctor().getDoy());
         doctor.setAfm(user.getDoctor().getAfm());
 
-        handleDoctorSchedulesUpdate(doctor, user.getDoctor().getSchedules());
+        handleDoctorOpeningHoursUpdate(doctor, user.getDoctor().getOpeningHours());
 
         if (user.getRegisterRequest() != null) {
             handleRegisterRequestUpdate(the_user, user.getRegisterRequest());
@@ -269,7 +388,7 @@ public class UserRestController{
             diagnostic.setSpecialties(user.getDiagnosticCenter().getSpecialties());
         }
 
-        handleDiagnosticCenterSchedulesUpdate(diagnostic, user.getDiagnosticCenter().getSchedules());
+        handleDiagnosticCenterOpeningHoursUpdate(diagnostic, user.getDiagnosticCenter().getOpeningHours());
 
         if (user.getRegisterRequest() != null) {
             handleRegisterRequestUpdate(the_user, user.getRegisterRequest());
@@ -279,59 +398,82 @@ public class UserRestController{
         the_user.setDiagnosticCenter(diagnostic);
     }
 
-    private void handleDoctorSchedulesUpdate(Doctor doctor, List<Schedule> schedules) {
-        if (schedules == null) return;
+    private void handleDoctorOpeningHoursUpdate(Doctor doctor, List<OpeningHours> openingHours) {
+        if (openingHours == null) return;
 
-        List<Schedule> existingSchedules = doctor.getSchedules();
-        Map<Integer, Schedule> existingScheduleMap = existingSchedules.stream()
+        List<OpeningHours> existingOpeningHours = doctor.getOpeningHours();
+        Map<Integer, OpeningHours> existingOpeningHoursMap = existingOpeningHours.stream()
                 .filter(schedule -> schedule.getId() != null)
-                .collect(Collectors.toMap(Schedule::getId, schedule -> schedule));
+                .collect(Collectors.toMap(OpeningHours::getId, schedule -> schedule));
 
         Set<Integer> processedIds = new HashSet<>();
+        List<OpeningHours> updatedOpeningHours = new ArrayList<>();
 
-        for (Schedule schedule : schedules) {
-            if (schedule.getId() != null && existingScheduleMap.containsKey(schedule.getId())) {
-                Schedule existingSchedule = existingScheduleMap.get(schedule.getId());
-                existingSchedule.setDayOfWeek(schedule.getDayOfWeek());
-                existingSchedule.setStartTime(schedule.getStartTime());
-                existingSchedule.setEndTime(schedule.getEndTime());
+
+        for (OpeningHours schedule : openingHours) {
+            if (schedule.getId() != null && existingOpeningHoursMap.containsKey(schedule.getId())) {
+                OpeningHours existingOpeningHour = existingOpeningHoursMap.get(schedule.getId());
+                existingOpeningHour.setDayOfWeek(schedule.getDayOfWeek());
+                existingOpeningHour.setStartTime(schedule.getStartTime());
+                existingOpeningHour.setEndTime(schedule.getEndTime());
                 processedIds.add(schedule.getId());
+                updatedOpeningHours.add(existingOpeningHour);
             } else {
                 schedule.setDoctor(doctor);
-                Schedule savedSchedule = scheduleRepository.save(schedule);
-                doctor.getSchedules().add(savedSchedule);
+                OpeningHours savedSchedule = openingHoursRepository.save(schedule);
+                doctor.getOpeningHours().add(savedSchedule);
                 processedIds.add(savedSchedule.getId());
+                updatedOpeningHours.add(savedSchedule);
             }
         }
 
-        existingSchedules.removeIf(schedule -> !processedIds.contains(schedule.getId()));
+        for (OpeningHours existingOpeningHour : existingOpeningHours) {
+            if (existingOpeningHour.getId() != null && !processedIds.contains(existingOpeningHour.getId())) {
+                openingHoursRepository.delete(existingOpeningHour); // Delete from database
+            }
+        }
+        doctor.setOpeningHours(updatedOpeningHours);
     }
 
-    private void handleDiagnosticCenterSchedulesUpdate(DiagnosticCenter diagnostic, List<Schedule> schedules) {
-        if (schedules == null) return;
+    private void handleDiagnosticCenterOpeningHoursUpdate(DiagnosticCenter diagnostic, List<OpeningHours> openingHours) {
+        if (openingHours == null) return;
 
-        List<Schedule> existingSchedules = diagnostic.getSchedules();
-        Map<Integer, Schedule> existingScheduleMap = existingSchedules.stream()
-                .filter(schedule -> schedule.getId() != null)
-                .collect(Collectors.toMap(Schedule::getId, schedule -> schedule));
+        List<OpeningHours> existingOpeningHours = diagnostic.getOpeningHours();
+        Map<Integer, OpeningHours> existingOpeningHoursMap = existingOpeningHours.stream()
+                .filter(openingHour -> openingHour.getId() != null)
+                .collect(Collectors.toMap(OpeningHours::getId, openingHour -> openingHour));
 
         Set<Integer> processedIds = new HashSet<>();
 
-        for (Schedule schedule : schedules) {
-            if (schedule.getId() != null && existingScheduleMap.containsKey(schedule.getId())) {
-                Schedule existingSchedule = existingScheduleMap.get(schedule.getId());
-                existingSchedule.setDayOfWeek(schedule.getDayOfWeek());
-                existingSchedule.setStartTime(schedule.getStartTime());
-                existingSchedule.setEndTime(schedule.getEndTime());
-                processedIds.add(schedule.getId());
+        List<OpeningHours> updatedOpeningHours = new ArrayList<>();
+
+        for (OpeningHours openingHour : openingHours) {
+            if (openingHour.getId() != null && existingOpeningHoursMap.containsKey(openingHour.getId())) {
+                // Update existing entry
+                OpeningHours existingOpeningHour = existingOpeningHoursMap.get(openingHour.getId());
+                existingOpeningHour.setDayOfWeek(openingHour.getDayOfWeek());
+                existingOpeningHour.setStartTime(openingHour.getStartTime());
+                existingOpeningHour.setEndTime(openingHour.getEndTime());
+                processedIds.add(openingHour.getId());
+                updatedOpeningHours.add(existingOpeningHour);
             } else {
-                schedule.setDiagnosticCenter(diagnostic);
-                diagnostic.getSchedules().add(schedule);
+                // Insert new entry
+                openingHour.setDiagnosticCenter(diagnostic);
+                OpeningHours savedOpeningHour = openingHoursRepository.save(openingHour);
+                processedIds.add(savedOpeningHour.getId());
+                updatedOpeningHours.add(savedOpeningHour);
             }
         }
 
-        existingSchedules.removeIf(schedule -> !processedIds.contains(schedule.getId()));
+        // Remove unprocessed entries (deletions)
+        for (OpeningHours existingOpeningHour : existingOpeningHours) {
+            if (existingOpeningHour.getId() != null && !processedIds.contains(existingOpeningHour.getId())) {
+                openingHoursRepository.delete(existingOpeningHour); // Delete from database
+            }
+        }
+        diagnostic.setOpeningHours(updatedOpeningHours);
     }
+
 
     private void handleRegisterRequestUpdate(User user, RegisterRequest registerRequest) {
         if (registerRequest.getId() != null) {
