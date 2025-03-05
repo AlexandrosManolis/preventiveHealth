@@ -243,6 +243,44 @@ public class AppointmentRestController {
         }
     }
 
+    @GetMapping("{userId}/appointments/{appointmentId}/details/examFile")
+    public ResponseEntity<?> getAppointmentExamFile(@PathVariable Integer userId, @PathVariable Integer appointmentId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        if (!userId.equals(user.getId())) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access this resource"));
+        }
+
+        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow();
+        if (appointment.getAppointmentStatus().equals(Appointment.AppointmentStatus.COMPLETED)) {
+            String filePath = minioService.listPatientFile(appointment.getPatient().getFullName(), appointment.getPatient().getId(), appointmentId);
+            if (filePath == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("File not found");
+            }
+
+            try {
+                filePath = filePath.trim();
+                String encodedFileName = URLEncoder.encode(filePath, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+
+                // Get the file stream from MinIO
+                InputStream fileStream = minioService.downloadFile(filePath);
+
+                // Return the file as a response
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
+                        .body(new InputStreamResource(fileStream));
+
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error downloading file: " + e.getMessage());
+            }
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Appointment not found or incomplete");
+    }
+
     @PostMapping("{userId}/appointments/{appointmentId}/cancel")
     public ResponseEntity<?> cancelAppointment(@PathVariable Integer userId, @PathVariable Integer appointmentId, @RequestBody String causeOfRejection){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -337,8 +375,10 @@ public class AppointmentRestController {
                 appointment.setRecheckNeeded(completeAppointmentRequest.getRecheckNeeded());
                 appointment.setMedicalFileNeeded(completeAppointmentRequest.getMedicalFileNeeded());
                 appointment.setRecheckDate(completeAppointmentRequest.getRecheckDate());
+                medicalExamService.uploadExam(appointmentId, completeAppointmentRequest.getMedicalFile());
             }else if(appointment.getAppointmentStatus() == Appointment.AppointmentStatus.COMPLETED){
                 appointment.setDiagnosisDescription(completeAppointmentRequest.getDiagnosisDescription());
+                medicalExamService.uploadExam(appointmentId, completeAppointmentRequest.getMedicalFile());
             }
 
             appointmentRepository.save(appointment);
