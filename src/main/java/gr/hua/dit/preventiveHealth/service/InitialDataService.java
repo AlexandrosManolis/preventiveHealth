@@ -2,10 +2,14 @@ package gr.hua.dit.preventiveHealth.service;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.entity.users.Patient;
+import gr.hua.dit.preventiveHealth.entity.users.Role;
+import gr.hua.dit.preventiveHealth.entity.users.Specialties;
+import gr.hua.dit.preventiveHealth.entity.users.User;
 import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
-import gr.hua.dit.preventiveHealth.repository.RoleRepository;
-import gr.hua.dit.preventiveHealth.repository.SpecialtiesRepository;
-import gr.hua.dit.preventiveHealth.repository.UserRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.SpecialtiesRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;

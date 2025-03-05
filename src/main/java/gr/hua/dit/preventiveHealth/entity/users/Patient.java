@@ -1,4 +1,4 @@
-package gr.hua.dit.preventiveHealth.entity;
+package gr.hua.dit.preventiveHealth.entity.users;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;

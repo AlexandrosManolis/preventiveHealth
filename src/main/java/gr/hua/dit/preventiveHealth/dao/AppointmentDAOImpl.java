@@ -1,8 +1,7 @@
 package gr.hua.dit.preventiveHealth.dao;
 
 import gr.hua.dit.preventiveHealth.entity.Appointment;
-import gr.hua.dit.preventiveHealth.entity.OpeningHours;
-import gr.hua.dit.preventiveHealth.repository.UserRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.NonUniqueResultException;

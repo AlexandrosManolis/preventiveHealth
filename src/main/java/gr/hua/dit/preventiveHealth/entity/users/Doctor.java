@@ -1,33 +1,33 @@
-package gr.hua.dit.preventiveHealth.entity;
+package gr.hua.dit.preventiveHealth.entity.users;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 @Entity
-@Table(name = "diagnosticCenters",
+@Table(name = "doctors",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = "afm")
         })
-public class DiagnosticCenter {
+public class Doctor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @JsonManagedReference("diagnostic-schedule")
-    @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
+    @JsonManagedReference("doctor-schedule")
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OpeningHours> openingHours;
 
     @OneToOne
     @MapsId
-    @JsonBackReference("user-diagnostic")
+    @JsonBackReference("user-doctor")
     @JoinColumn(name = "id")
     private User user;
 
@@ -41,6 +41,9 @@ public class DiagnosticCenter {
     private String state;
 
     @NotBlank
+    private String specialty;
+
+    @NotBlank
     private String doy;
 
     @NotBlank
@@ -48,28 +51,18 @@ public class DiagnosticCenter {
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String afm;
 
-
-    @NotEmpty
-    @ElementCollection
-    @CollectionTable(
-            name = "diagnostic_center_specialties",
-            joinColumns = @JoinColumn(name = "diagnostic_center_id")
-    )
-    @Column(name = "specialty")
-    private List<String> specialties;
-
-    public DiagnosticCenter() {
+    public Doctor() {
     }
 
-    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<OpeningHours> openingHours, User user) {
+    public Doctor(User user, String address, String city, String specialty, String state, String doy, String afm, List<OpeningHours> openingHours) {
+        this.user = user;
         this.address = address;
         this.city = city;
+        this.specialty = specialty;
         this.state = state;
         this.doy = doy;
         this.afm = afm;
-        this.specialties = specialties;
         this.openingHours = openingHours;
-        this.user = user;
     }
 
     public Integer getId() {
@@ -80,20 +73,20 @@ public class DiagnosticCenter {
         this.id = id;
     }
 
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
     public String getAddress() {
         return address;
     }
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public String getState() {
@@ -104,20 +97,20 @@ public class DiagnosticCenter {
         this.state = state;
     }
 
+    public String getSpecialty() {
+        return specialty;
+    }
+
+    public void setSpecialty(String specialty) {
+        this.specialty = specialty;
+    }
+
     public String getDoy() {
         return doy;
     }
 
     public void setDoy(String doy) {
         this.doy = doy;
-    }
-
-    public List<String> getSpecialties() {
-        return specialties;
-    }
-
-    public void setSpecialties(List<String> specialties) {
-        this.specialties = specialties;
     }
 
     public String getAfm() {
@@ -151,15 +144,15 @@ public class DiagnosticCenter {
 
     @Override
     public String toString() {
-        return "DiagnosticCenter{" +
+        return "Doctor{" +
                 "id=" + id +
                 ", openingHours=" + openingHours +
                 ", address='" + address + '\'' +
                 ", city='" + city + '\'' +
                 ", state='" + state + '\'' +
+                ", specialty='" + specialty + '\'' +
                 ", doy='" + doy + '\'' +
                 ", afm='" + afm + '\'' +
-                ", specialties=" + specialties +
                 '}';
     }
 }

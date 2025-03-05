@@ -1,8 +1,8 @@
 package gr.hua.dit.preventiveHealth.service;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
-import gr.hua.dit.preventiveHealth.repository.UserRepository;
-import gr.hua.dit.preventiveHealth.entity.User;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
+import gr.hua.dit.preventiveHealth.entity.users.User;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;

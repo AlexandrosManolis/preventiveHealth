@@ -1,7 +1,7 @@
 package gr.hua.dit.preventiveHealth.rest;
 
 import gr.hua.dit.preventiveHealth.config.JwtUtils;
-import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.request.DiagnosticSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.request.DoctorSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.request.LoginRequest;
@@ -9,9 +9,9 @@ import gr.hua.dit.preventiveHealth.payload.request.PatientSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.response.JwtResponse;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.payload.validation.Create;
-import gr.hua.dit.preventiveHealth.repository.RegisterRequestRepository;
-import gr.hua.dit.preventiveHealth.repository.RoleRepository;
-import gr.hua.dit.preventiveHealth.repository.UserRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RegisterRequestRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
 import gr.hua.dit.preventiveHealth.service.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

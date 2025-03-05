@@ -1,11 +1,9 @@
 package gr.hua.dit.preventiveHealth.dao;
 
 import gr.hua.dit.preventiveHealth.entity.Appointment;
-import gr.hua.dit.preventiveHealth.entity.OpeningHours;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 public interface AppointmentDAO {
 

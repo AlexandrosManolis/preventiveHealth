@@ -1,7 +1,7 @@
 package gr.hua.dit.preventiveHealth.dao;
 
-import gr.hua.dit.preventiveHealth.entity.RegisterRequest;
-import gr.hua.dit.preventiveHealth.entity.User;
+import gr.hua.dit.preventiveHealth.entity.users.RegisterRequest;
+import gr.hua.dit.preventiveHealth.entity.users.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.NonUniqueResultException;
@@ -41,6 +41,20 @@ public class UserDAOImpl implements UserDAO{
     }
 
     @Override
+    public Double averageSpecialistRating(Integer userId) {
+        try {
+            Double allSpecialistsRatedByUser = entityManager.createQuery(
+                            "SELECT AVG(r.rating) FROM RatingSpecialist r WHERE r.doctor.id = :userId OR r.diagnosticCenter.id = :userId", Double.class)
+                    .setParameter("userId", userId)
+                    .getSingleResult();
+
+            return allSpecialistsRatedByUser;
+        } catch (NoResultException | NonUniqueResultException ex) {
+            return null;
+        }
+    }
+
+    @Override
     public List<String> getAllSpecialties() {
         try {
             List<String> specialties = entityManager.createQuery(
@@ -54,6 +68,25 @@ public class UserDAOImpl implements UserDAO{
                     .setParameter("status", RegisterRequest.Status.ACCEPTED)
                     .getResultList();
             return specialties;
+        } catch (NoResultException ex) {
+            return Collections.emptyList(); // Return an empty list instead of null
+        }
+    }
+
+    @Override
+    public List<String> getAllCities() {
+        try {
+            List<String> cities = entityManager.createQuery(
+                            "SELECT DISTINCT d.city " +
+                                    "FROM Doctor d JOIN d.user u JOIN RegisterRequest rr ON rr.user = u " +
+                                    "WHERE rr.status = :status " +
+                                    "UNION " +
+                                    "SELECT DISTINCT c.city " +
+                                    "FROM DiagnosticCenter c JOIN c.user u JOIN RegisterRequest rr ON rr.user = u " +
+                                    "WHERE rr.status = :status", String.class)
+                    .setParameter("status", RegisterRequest.Status.ACCEPTED)
+                    .getResultList();
+            return cities;
         } catch (NoResultException ex) {
             return Collections.emptyList(); // Return an empty list instead of null
         }

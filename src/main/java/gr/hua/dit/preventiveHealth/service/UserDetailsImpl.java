@@ -1,7 +1,7 @@
 package gr.hua.dit.preventiveHealth.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import gr.hua.dit.preventiveHealth.entity.User;
+import gr.hua.dit.preventiveHealth.entity.users.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

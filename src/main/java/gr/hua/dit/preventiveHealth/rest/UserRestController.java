@@ -2,8 +2,10 @@ package gr.hua.dit.preventiveHealth.rest;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +16,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import gr.hua.dit.preventiveHealth.payload.validation.Update;
-
 import java.util.*;
 import java.util.stream.Collectors;
 

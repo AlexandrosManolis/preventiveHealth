@@ -1,9 +1,9 @@
 package gr.hua.dit.preventiveHealth.service;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
-import gr.hua.dit.preventiveHealth.entity.RegisterRequest;
-import gr.hua.dit.preventiveHealth.entity.User;
-import gr.hua.dit.preventiveHealth.repository.RegisterRequestRepository;
+import gr.hua.dit.preventiveHealth.entity.users.RegisterRequest;
+import gr.hua.dit.preventiveHealth.entity.users.User;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RegisterRequestRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;

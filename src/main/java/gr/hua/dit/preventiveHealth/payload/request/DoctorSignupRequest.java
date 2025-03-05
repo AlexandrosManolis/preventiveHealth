@@ -1,7 +1,7 @@
 package gr.hua.dit.preventiveHealth.payload.request;
 
-import gr.hua.dit.preventiveHealth.entity.Role;
-import gr.hua.dit.preventiveHealth.entity.OpeningHours;
+import gr.hua.dit.preventiveHealth.entity.users.Role;
+import gr.hua.dit.preventiveHealth.entity.users.OpeningHours;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
