@@ -12,7 +12,46 @@ public class Specialties {
 
     private String name;
 
+    public enum RecommendCheckUp{
+        REQUIRED, OPTIONAL
+    }
+
+    private RecommendCheckUp recommendCheckUp;
+
+    private String medicalExam;
+
+    public enum Gender {
+        MALE, FEMALE, BOTH
+    }
+    private Gender gender;
+
+    private Integer minAge;
+    private Integer maxAge;
+
+    private Integer recheckInterval;
+
     public Specialties() {
+    }
+
+    public Specialties(String name, RecommendCheckUp recommendCheckUp, String medicalExam, Gender gender, Integer minAge, Integer maxAge, Integer recheckInterval) {
+        if (recommendCheckUp == RecommendCheckUp.OPTIONAL) {
+            throw new IllegalArgumentException("Use the other constructor for OPTIONAL check-ups.");
+        }
+        this.name = name;
+        this.recommendCheckUp = recommendCheckUp;
+        this.medicalExam = medicalExam;
+        this.gender = gender;
+        this.minAge = minAge;
+        this.maxAge = maxAge;
+        this.recheckInterval = recheckInterval;
+    }
+
+    public Specialties(String name, RecommendCheckUp recommendCheckUp) {
+        if (recommendCheckUp == RecommendCheckUp.REQUIRED) {
+            throw new IllegalArgumentException("Use the other constructor for REQUIRED check-ups.");
+        }
+        this.name = name;
+        this.recommendCheckUp = recommendCheckUp;
     }
 
     public Specialties(String name) {
@@ -33,6 +72,54 @@ public class Specialties {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getMedicalExam() {
+        return medicalExam;
+    }
+
+    public void setMedicalExam(String medicalExam) {
+        this.medicalExam = medicalExam;
+    }
+
+    public RecommendCheckUp getRecommendCheckUp() {
+        return recommendCheckUp;
+    }
+
+    public void setRecommendCheckUp(RecommendCheckUp recommendCheckUp) {
+        this.recommendCheckUp = recommendCheckUp;
+    }
+
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
+    public Integer getMinAge() {
+        return minAge;
+    }
+
+    public void setMinAge(Integer minAge) {
+        this.minAge = minAge;
+    }
+
+    public Integer getMaxAge() {
+        return maxAge;
+    }
+
+    public void setMaxAge(Integer maxAge) {
+        this.maxAge = maxAge;
+    }
+
+    public Integer getRecheckInterval() {
+        return recheckInterval;
+    }
+
+    public void setRecheckInterval(Integer recheckInterval) {
+        this.recheckInterval = recheckInterval;
     }
 
     @Override

@@ -2,12 +2,15 @@ package gr.hua.dit.preventiveHealth.entity.users;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import gr.hua.dit.preventiveHealth.entity.ReminderForm;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 
 @Entity
 @Table(name = "patients",
@@ -45,6 +48,10 @@ public class Patient{
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String amka;
 
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ReminderForm> reminderForm;
+
     private LocalDate parseBirthday(String birthdayStr) {
         if (birthdayStr == null || birthdayStr.isEmpty()) {
             return null; // Handle empty birthday
@@ -59,6 +66,14 @@ public class Patient{
     }
 
     public Patient() {
+    }
+
+    public List<ReminderForm> getReminderForm() {
+        return reminderForm;
+    }
+
+    public void setReminderForm(List<ReminderForm> reminderForm) {
+        this.reminderForm = reminderForm;
     }
 
     public Patient(User user, Gender gender, String birthdayStr, String amka) {
