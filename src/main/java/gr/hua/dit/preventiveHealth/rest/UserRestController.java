@@ -11,11 +11,15 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import gr.hua.dit.preventiveHealth.payload.validation.Update;
+
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -151,8 +155,6 @@ public class UserRestController{
     public ResponseEntity<?> specialistRating(@PathVariable Integer userId) {
         Map<String, Object> response = new HashMap<>();
 
-
-
         Double averageSpecialistRating = userDAO.averageSpecialistRating(userId);
 
         if(averageSpecialistRating == null){
@@ -231,8 +233,53 @@ public class UserRestController{
 
     @GetMapping("specialties")
     public ResponseEntity<?> getAllSpecialties() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+            return new ResponseEntity<>("Authentication required", HttpStatus.UNAUTHORIZED);
+        }
+
+        Integer userId = userDAO.getUserId(username);
+        if (userId == null) {
+            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+        }
+
+        User user = userDAO.getUserProfile(userId);
+        String userRole = userService.getUserRole();
+
         List<Specialties> specialties = specialtiesRepository.findAll();
-        return new ResponseEntity<>(specialties, HttpStatus.OK);
+
+        if (user != null && userRole.equals("ROLE_PATIENT")) {
+            LocalDate currentDate = LocalDate.now();
+            double age = ChronoUnit.DAYS.between(user.getPatient().getBirthday(), currentDate) / 365.25;
+
+            for (int i = specialties.size() - 1; i >= 0; i--) {
+                Specialties specialty = specialties.get(i);
+
+                if (specialty.getRecommendCheckUp() == Specialties.RecommendCheckUp.REQUIRED) {
+
+                    if (specialty.getGender() != null && specialty.getGender() != Specialties.Gender.BOTH) {
+                        if (user.getPatient().getGender() == null || !specialty.getGender().name().equals(user.getPatient().getGender().name())) {
+                            specialties.remove(i);
+                            continue;
+                        }
+                    }
+
+                    if (age < specialty.getMinAge() || (specialty.getMaxAge() != null && age > specialty.getMaxAge())) {
+                        specialty.setRecommendCheckUp(Specialties.RecommendCheckUp.OPTIONAL);
+                    }
+                }
+            }
+            return ResponseEntity.ok(specialties);
+        }else if (user != null && (userRole.equals("ROLE_DOCTOR") || userRole.equals("ROLE_DIAGNOSTIC"))) {
+            ArrayList<String> specialtiesList = new ArrayList<>();
+            for (Specialties specialty : specialties) {
+                specialtiesList.add(specialty.getName());
+            }
+            return new ResponseEntity<>(specialtiesList, HttpStatus.OK);
+        }
+        return new ResponseEntity<>("Specialties not found", HttpStatus.NOT_FOUND);
     }
 
     @GetMapping("{userId}/profile")
