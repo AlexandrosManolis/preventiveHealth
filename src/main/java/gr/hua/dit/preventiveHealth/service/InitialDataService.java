@@ -2,11 +2,10 @@ package gr.hua.dit.preventiveHealth.service;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
-import gr.hua.dit.preventiveHealth.entity.users.Patient;
-import gr.hua.dit.preventiveHealth.entity.users.Role;
-import gr.hua.dit.preventiveHealth.entity.users.Specialties;
-import gr.hua.dit.preventiveHealth.entity.users.User;
+import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.DiagnosticRepository;
+
 import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.SpecialtiesRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
@@ -37,6 +36,9 @@ public class InitialDataService {
     private SpecialtiesRepository specialtiesRepository;
     @Autowired
     private AppointmentRepository appointmentRepository;
+  
+    @Autowired
+    private DiagnosticRepository diagnosticRepository;
 
     @Autowired
     public InitialDataService(UserRepository userRepository,
@@ -88,7 +90,7 @@ public class InitialDataService {
 
         userRepository.findByUsername("user1").orElseGet(()-> {
 
-            User user = new User("user1", this.passwordEncoder.encode("user1"),"user1@example.com","User1","+306923456781");
+            User user = new User("user1", this.passwordEncoder.encode("user1!"),"user1@example.com","User1","+306923456781");
             Patient patient = new Patient(user,Patient.Gender.MALE, "23/05/1998", "23059812345");
             Set<Role> roles = new HashSet<>();
             roles.add(roleRepository.findByRoleName("ROLE_PATIENT").orElseThrow(()-> new RuntimeException("Patient role not found")));
@@ -101,30 +103,60 @@ public class InitialDataService {
     }
 
     private void addSpecialties() {
-        List<String> specialties = Arrays.asList(
-                "Allergist", "Anesthesiologist", "Cardiologist", "Dermatologist", "Emergency Medicine Specialist",
-                "Endocrinologist", "Family Medicine Physician", "Gastroenterologist", "General Surgeon",
-                "Geriatrician", "Hematologist", "Infectious Disease Specialist", "Internist", "Nephrologist",
-                "Neurologist", "Neurosurgeon", "Obstetrician", "Gynecologist", "Oncologist", "Ophthalmologist",
-                "Orthopedic Surgeon", "ENT Specialist", "Pathologist", "Pediatrician", "Physiatrist",
-                "Plastic Surgeon", "Psychiatrist", "Pulmonologist", "Radiologist", "Rheumatologist",
-                "Sports Medicine Specialist", "Thoracic Surgeon", "Urologist", "Vascular Surgeon", "Anaesthesiologist",
-                "Biological Hematologist", "Child Psychiatrist", "Clinical Biologist", "Clinical Chemist",
-                "Clinical Neurophysiologist", "Clinical Radiologist", "Oral and Maxillo-Facial Surgeon", "Dermatologist",
-                "General Hematologist", "General Practitioner", "Immunologist", "Laboratory Medicine Specialist",
-                "Microbiologist", "Neuro-Psychiatrist", "Nuclear Medicine Specialist", "Occupational Medicine Specialist",
-                "Otorhinolaryngologist", "Pediatric Surgeon", "Pharmacologist", "Respiratory Medicine Specialist",
-                "Physical Medicine and Rehabilitation Specialist", "Tropical Medicine Specialist", "Venereologist",
-                "Podiatrist", "Public Health and Preventive Medicine Specialist", "Radiotherapist", "Stomatologist"
+        List<Specialties> specialtiesList = Arrays.asList(
+                // REQUIRED specialists (alphabetically ordered)
+                new Specialties("Cardiologist", Specialties.RecommendCheckUp.REQUIRED, "Heart checkup, Blood Pressure Check", Specialties.Gender.BOTH, 6, null, 60),
+                new Specialties("Dentist", Specialties.RecommendCheckUp.REQUIRED, "Dental Health Check", Specialties.Gender.BOTH, 1, null, 12),
+                new Specialties("Dermatologist", Specialties.RecommendCheckUp.REQUIRED, "Skin Cancer Screening, Mole Check (ABCD method), Acne, Wart treatment", Specialties.Gender.BOTH, 12, null, 12),
+                new Specialties("Endocrinologist", Specialties.RecommendCheckUp.REQUIRED, "Blood Sugar Test, Thyroid Function Test", Specialties.Gender.BOTH, 6, null, 12),
+                new Specialties("Gastroenterologist", Specialties.RecommendCheckUp.REQUIRED, "Colonoscopy, Sigmoidoscopy", Specialties.Gender.BOTH, 50, null, 120),
+                new Specialties("Gynecologist", Specialties.RecommendCheckUp.REQUIRED, "Pap Smear, Clinical Breast Exam", Specialties.Gender.FEMALE, 21, null, 12),
+                new Specialties("Hematologist", Specialties.RecommendCheckUp.REQUIRED, "Complete Blood Count (CBC), Blood Test, CRP", Specialties.Gender.BOTH, 0, null, 24),
+                new Specialties("Laboratory Medicine Specialist", Specialties.RecommendCheckUp.REQUIRED, "Blood and Urine Tests", Specialties.Gender.BOTH, 0, null, 24),
+                new Specialties("Mastologist", Specialties.RecommendCheckUp.REQUIRED, "Mammography", Specialties.Gender.FEMALE, 40, null, 12),
+                new Specialties("Nephrologist", Specialties.RecommendCheckUp.REQUIRED, "Kidney Function Test, Urinalysis", Specialties.Gender.BOTH, 0, null, 12),
+                new Specialties("Ophthalmologist", Specialties.RecommendCheckUp.REQUIRED, "Eye Exam", Specialties.Gender.BOTH, 1, null, 24),
+                new Specialties("Pathologist", Specialties.RecommendCheckUp.REQUIRED, "Annual Physical and Clinical Examination", Specialties.Gender.BOTH, 18, null, 12),
+                new Specialties("Pediatrician", Specialties.RecommendCheckUp.REQUIRED, "Child Growth and Clinical Examination", Specialties.Gender.BOTH, 0, 18, 12),
+                new Specialties("Pneumonologist", Specialties.RecommendCheckUp.REQUIRED, "Chest X-ray, Spirometry for Smokers", Specialties.Gender.BOTH, 35, null, 12),
+                new Specialties("Radiologist", Specialties.RecommendCheckUp.REQUIRED, "Chest X-ray", Specialties.Gender.BOTH, 45, null, 24),
+                new Specialties("Urologist", Specialties.RecommendCheckUp.REQUIRED, "Prostate Exam, PSA Test", Specialties.Gender.MALE, 50, null, 12),
+
+                // OPTIONAL specialists (alphabetically ordered)
+                new Specialties("Allergist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Anesthesiologist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Child Psychiatrist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Emergency Medicine Specialist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("ENT Specialist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Family Medicine Physician", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("General Surgeon", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Geriatrician", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Immunologist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Infectious Disease Specialist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Neurologist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Neurosurgeon", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Obstetrician", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Occupational Medicine Specialist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Oncologist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Orthopedic Surgeon", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Physiatrist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Plastic Surgeon", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Podiatrist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Psychiatrist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Public Health and Preventive Medicine Specialist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Rheumatologist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Sports Medicine Specialist", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Thoracic Surgeon", Specialties.RecommendCheckUp.OPTIONAL),
+                new Specialties("Vascular Surgeon", Specialties.RecommendCheckUp.OPTIONAL)
         );
         List<String> existingSpecialties = specialtiesRepository.findAll()
                 .stream()
-                .map(s -> s.getName().toLowerCase())
+                .map(s -> s.getSpecialty().toLowerCase())
                 .toList();
 
-        specialties.stream()
-                .filter(specialty -> !existingSpecialties.contains(specialty.toLowerCase()))
-                .forEach(specialty -> specialtiesRepository.save(new Specialties(specialty)));
+        specialtiesList.stream()
+                .filter(specialty -> !existingSpecialties.contains(specialty.getSpecialty().toLowerCase()))
+                .forEach(specialtiesRepository::save);
     }
 
     private void everyDayCheckAppointments() {
