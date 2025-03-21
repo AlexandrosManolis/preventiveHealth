@@ -20,7 +20,7 @@ public class DiagnosticCenter {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
+  
     @OneToOne
     @MapsId
     @JsonBackReference("user-diagnostic")

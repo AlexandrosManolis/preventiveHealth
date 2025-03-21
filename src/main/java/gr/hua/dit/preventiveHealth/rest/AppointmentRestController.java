@@ -387,6 +387,7 @@ public class AppointmentRestController {
                 appointment.setRecheckNeeded(completeAppointmentRequest.getRecheckNeeded());
                 appointment.setMedicalFileNeeded(completeAppointmentRequest.getMedicalFileNeeded());
                 appointment.setRecheckDate(completeAppointmentRequest.getRecheckDate());
+
                 medicalExamService.uploadExam(appointmentId, completeAppointmentRequest.getMedicalFile());
             }else if(appointment.getAppointmentStatus() == Appointment.AppointmentStatus.COMPLETED){
                 appointment.setDiagnosisDescription(completeAppointmentRequest.getDiagnosisDescription());

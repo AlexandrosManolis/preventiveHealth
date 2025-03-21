@@ -213,6 +213,7 @@ public class UserRestController{
             exists = ratingSpecialistRepository.existsByDoctorIdAndPatientId(userId, patientId);
         }else{
             exists = ratingSpecialistRepository.existsByDiagnosticCenterIdAndPatientId(userId, patientId);
+
         }
 
         if(exists){
@@ -280,6 +281,94 @@ public class UserRestController{
             return new ResponseEntity<>(specialtiesList, HttpStatus.OK);
         }
         return new ResponseEntity<>("Specialties not found", HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping("specialist/{userId}/rating")
+    public ResponseEntity<?> specialistRating(@PathVariable Integer userId) {
+        Map<String, Object> response = new HashMap<>();
+
+
+
+        Double averageSpecialistRating = userDAO.averageSpecialistRating(userId);
+
+        if(averageSpecialistRating == null){
+            averageSpecialistRating = 0.0;
+        }
+        response.put("averageSpecialistRating", averageSpecialistRating);
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser") && authentication.getAuthorities().toString().contains("ROLE_PATIENT")) {
+            String username = authentication.getName();
+            Integer patientId = userDAO.getUserId(username);
+
+            User user = userDAO.getUserProfile(userId);
+            String userRole = user.getRoles().stream().anyMatch(role -> role.equals("ROLE_DOCTOR")) ? "ROLE_DOCTOR" : "ROLE_DIAGNOSTIC";
+            Boolean exists;
+            Integer ratingNumber = null;
+
+            if (userRole.equals("ROLE_DOCTOR")) {
+
+                exists = ratingSpecialistRepository.existsByDoctorIdAndPatientId(userId, patientId);
+                if(exists){
+                    ratingNumber = ratingSpecialistRepository.findRatingByDoctorIdAndPatientId(userId, patientId);
+                }
+            }else{
+                exists = ratingSpecialistRepository.existsByDiagnosticCenterIdAndPatientId(userId, patientId);
+                if(exists){
+                    ratingNumber = ratingSpecialistRepository.findRatingByDiagnosticCenterIdAndPatientId(userId, patientId);
+                }
+            }
+
+            response.put("ratingExists", exists);
+            if(exists && ratingNumber != null){
+                response.put("patientRating", ratingNumber);
+            }
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("specialist/{userId}/rating")
+    public ResponseEntity<?> rateSpecialist(@PathVariable Integer userId, @RequestBody RatingSpecialist ratingSpecialist) {
+        User user = userDAO.getUserProfile(userId);
+        String userRole = user.getRoles().stream().anyMatch(role -> role.equals("ROLE_DOCTOR")) ? "ROLE_DOCTOR" : "ROLE_DIAGNOSTIC";
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Integer patientId = userDAO.getUserId(username);
+
+        Patient patient = patientRepository.findById(patientId).orElse(null);
+        Doctor doctor = doctorRepository.findById(userId).orElse(null);
+        DiagnosticCenter diagnosticCenter = diagnosticRepository.findById(userId).orElse(null);
+        Boolean exists;
+
+        if (userRole.equals("ROLE_DOCTOR")) {
+
+            exists = ratingSpecialistRepository.existsByDoctorIdAndPatientId(userId, patientId);
+        }else{
+            exists = ratingSpecialistRepository.existsByDiagnosticCenterIdAndPatientId(userId, patientId);
+        }
+
+        if(exists){
+            throw new IllegalArgumentException("You have already rated this doctor.");
+        }
+        RatingSpecialist newRatingSpecialist = new RatingSpecialist();
+
+        newRatingSpecialist.setRating(ratingSpecialist.getRating());
+        newRatingSpecialist.setRatingDescription(ratingSpecialist.getRatingDescription());
+        newRatingSpecialist.setPatient(patient);
+        newRatingSpecialist.setDoctor(doctor);
+        newRatingSpecialist.setDiagnosticCenter(diagnosticCenter);
+
+        ratingSpecialistRepository.save(newRatingSpecialist);
+
+        return new ResponseEntity<>(newRatingSpecialist, HttpStatus.OK);
+    }
+
+    @GetMapping("specialties")
+    public ResponseEntity<?> getAllSpecialties() {
+        List<Specialties> specialties = specialtiesRepository.findAll();
+        return new ResponseEntity<>(specialties, HttpStatus.OK);
     }
 
     @GetMapping("{userId}/profile")

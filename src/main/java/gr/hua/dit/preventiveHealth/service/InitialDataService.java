@@ -5,6 +5,7 @@ import gr.hua.dit.preventiveHealth.entity.*;
 import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.DiagnosticRepository;
+
 import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.SpecialtiesRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
@@ -35,6 +36,7 @@ public class InitialDataService {
     private SpecialtiesRepository specialtiesRepository;
     @Autowired
     private AppointmentRepository appointmentRepository;
+  
     @Autowired
     private DiagnosticRepository diagnosticRepository;
 
@@ -156,7 +158,6 @@ public class InitialDataService {
                 .filter(specialty -> !existingSpecialties.contains(specialty.getSpecialty().toLowerCase()))
                 .forEach(specialtiesRepository::save);
     }
-
 
     private void everyDayCheckAppointments() {
         List<Appointment> appointments = appointmentRepository.findAll();
