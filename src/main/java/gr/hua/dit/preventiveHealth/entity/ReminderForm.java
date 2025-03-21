@@ -22,6 +22,8 @@ public class ReminderForm {
 
     private LocalDate lastExamDate;
 
+    private LocalDate nextExamDateReminder;
+
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
     @JsonBackReference
@@ -44,6 +46,14 @@ public class ReminderForm {
 
     public void setPatient(Patient patient) {
         this.patient = patient;
+    }
+
+    public LocalDate getNextExamDateReminder() {
+        return nextExamDateReminder;
+    }
+
+    public void setNextExamDateReminder(LocalDate nextExamDateReminder) {
+        this.nextExamDateReminder = nextExamDateReminder;
     }
 
     public Integer getRecurringTimeIntervalInDays() {

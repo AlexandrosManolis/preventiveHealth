@@ -21,10 +21,6 @@ public class DiagnosticCenter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @JsonManagedReference("diagnostic-schedule")
-    @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
-    private List<OpeningHours> openingHours;
-
     @OneToOne
     @MapsId
     @JsonBackReference("user-diagnostic")
@@ -48,6 +44,9 @@ public class DiagnosticCenter {
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String afm;
 
+    @JsonManagedReference("diagnostic-schedule")
+    @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
+    private List<OpeningHours> openingHours;
 
     @NotEmpty
     @ElementCollection
@@ -61,7 +60,7 @@ public class DiagnosticCenter {
     public DiagnosticCenter() {
     }
 
-    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<OpeningHours> openingHours, User user) {
+    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<OpeningHours> openingHours) {
         this.address = address;
         this.city = city;
         this.state = state;
@@ -69,7 +68,6 @@ public class DiagnosticCenter {
         this.afm = afm;
         this.specialties = specialties;
         this.openingHours = openingHours;
-        this.user = user;
     }
 
     public Integer getId() {

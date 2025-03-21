@@ -10,7 +10,7 @@ public class Specialties {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String name;
+    private String specialty;
 
     public enum RecommendCheckUp{
         REQUIRED, OPTIONAL
@@ -33,11 +33,11 @@ public class Specialties {
     public Specialties() {
     }
 
-    public Specialties(String name, RecommendCheckUp recommendCheckUp, String medicalExam, Gender gender, Integer minAge, Integer maxAge, Integer recheckInterval) {
+    public Specialties(String specialty, RecommendCheckUp recommendCheckUp, String medicalExam, Gender gender, Integer minAge, Integer maxAge, Integer recheckInterval) {
         if (recommendCheckUp == RecommendCheckUp.OPTIONAL) {
             throw new IllegalArgumentException("Use the other constructor for OPTIONAL check-ups.");
         }
-        this.name = name;
+        this.specialty = specialty;
         this.recommendCheckUp = recommendCheckUp;
         this.medicalExam = medicalExam;
         this.gender = gender;
@@ -46,16 +46,16 @@ public class Specialties {
         this.recheckInterval = recheckInterval;
     }
 
-    public Specialties(String name, RecommendCheckUp recommendCheckUp) {
+    public Specialties(String specialty, RecommendCheckUp recommendCheckUp) {
         if (recommendCheckUp == RecommendCheckUp.REQUIRED) {
             throw new IllegalArgumentException("Use the other constructor for REQUIRED check-ups.");
         }
-        this.name = name;
+        this.specialty = specialty;
         this.recommendCheckUp = recommendCheckUp;
     }
 
-    public Specialties(String name) {
-        this.name = name;
+    public Specialties(String specialty) {
+        this.specialty = specialty;
     }
 
     public Integer getId() {
@@ -66,12 +66,12 @@ public class Specialties {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public String getSpecialty() {
+        return specialty;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setSpecialty(String name) {
+        this.specialty = name;
     }
 
     public String getMedicalExam() {
@@ -126,7 +126,7 @@ public class Specialties {
     public String toString() {
         return "Specialties{" +
                 "id=" + id +
-                ", name='" + name + '\'' +
+                ", name='" + specialty + '\'' +
                 '}';
     }
 }

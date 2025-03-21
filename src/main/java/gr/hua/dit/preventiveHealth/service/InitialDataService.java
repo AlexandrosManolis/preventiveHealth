@@ -2,11 +2,9 @@ package gr.hua.dit.preventiveHealth.service;
 
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
-import gr.hua.dit.preventiveHealth.entity.users.Patient;
-import gr.hua.dit.preventiveHealth.entity.users.Role;
-import gr.hua.dit.preventiveHealth.entity.users.Specialties;
-import gr.hua.dit.preventiveHealth.entity.users.User;
+import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.DiagnosticRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.SpecialtiesRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
@@ -37,6 +35,8 @@ public class InitialDataService {
     private SpecialtiesRepository specialtiesRepository;
     @Autowired
     private AppointmentRepository appointmentRepository;
+    @Autowired
+    private DiagnosticRepository diagnosticRepository;
 
     @Autowired
     public InitialDataService(UserRepository userRepository,
@@ -88,7 +88,7 @@ public class InitialDataService {
 
         userRepository.findByUsername("user1").orElseGet(()-> {
 
-            User user = new User("user1", this.passwordEncoder.encode("user1"),"user1@example.com","User1","+306923456781");
+            User user = new User("user1", this.passwordEncoder.encode("user1!"),"user1@example.com","User1","+306923456781");
             Patient patient = new Patient(user,Patient.Gender.MALE, "23/05/1998", "23059812345");
             Set<Role> roles = new HashSet<>();
             roles.add(roleRepository.findByRoleName("ROLE_PATIENT").orElseThrow(()-> new RuntimeException("Patient role not found")));
@@ -149,11 +149,11 @@ public class InitialDataService {
         );
         List<String> existingSpecialties = specialtiesRepository.findAll()
                 .stream()
-                .map(s -> s.getName().toLowerCase())
+                .map(s -> s.getSpecialty().toLowerCase())
                 .toList();
 
         specialtiesList.stream()
-                .filter(specialty -> !existingSpecialties.contains(specialty.getName().toLowerCase()))
+                .filter(specialty -> !existingSpecialties.contains(specialty.getSpecialty().toLowerCase()))
                 .forEach(specialtiesRepository::save);
     }
 
