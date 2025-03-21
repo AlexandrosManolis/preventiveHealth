@@ -13,6 +13,7 @@ import gr.hua.dit.preventiveHealth.repository.usersRepository.PatientRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
 import gr.hua.dit.preventiveHealth.service.MedicalExamService;
 import gr.hua.dit.preventiveHealth.service.MinioService;
+import gr.hua.dit.preventiveHealth.service.ReminderFormService;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
@@ -68,6 +69,9 @@ public class AppointmentRestController {
     private MedicalExamService medicalExamService;
     @Autowired
     private MinioService minioService;
+
+    @Autowired
+    private ReminderFormService reminderFormService;
 
     @GetMapping("{userId}/allAppointments")
     public ResponseEntity<?> getAllAppointments(@PathVariable Integer userId){
@@ -308,6 +312,10 @@ public class AppointmentRestController {
             }
             appointment.setRejectionCause(causeOfRejection);
             appointmentRepository.save(appointment);
+
+            // Calculate next exam dates
+            reminderFormService.updateNextExamDate(appointment.getPatient().getId());
+
             return ResponseEntity.ok().body(new MessageResponse("Appointment cancelled"));
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
@@ -340,6 +348,10 @@ public class AppointmentRestController {
             appointment.setAppointmentRequestStatus(Appointment.AppointmentRequestStatus.APPROVED);
 
             appointmentRepository.save(appointment);
+
+            // Calculate next exam dates
+            reminderFormService.updateNextExamDate(appointment.getPatient().getId());
+
             return ResponseEntity.ok().body(new MessageResponse("Appointment accepted"));
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
@@ -382,6 +394,10 @@ public class AppointmentRestController {
             }
 
             appointmentRepository.save(appointment);
+
+            // Calculate next exam dates
+            reminderFormService.updateNextExamDate(appointment.getPatient().getId());
+
             return ResponseEntity.ok().body(new MessageResponse("Appointment accepted"));
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to access resource"));
@@ -562,6 +578,10 @@ public class AppointmentRestController {
             existedAppointment.setRejectionCause(null);
 
             appointmentRepository.save(existedAppointment);
+
+            // Calculate next exam dates
+            reminderFormService.updateNextExamDate(existedAppointment.getPatient().getId());
+
             return ResponseEntity.ok().body(new MessageResponse("Appointment request saved successfully"));
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request an appointment"));

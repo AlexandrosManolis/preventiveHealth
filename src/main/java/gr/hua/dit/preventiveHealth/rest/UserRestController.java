@@ -275,7 +275,7 @@ public class UserRestController{
         }else if (user != null && (userRole.equals("ROLE_DOCTOR") || userRole.equals("ROLE_DIAGNOSTIC"))) {
             ArrayList<String> specialtiesList = new ArrayList<>();
             for (Specialties specialty : specialties) {
-                specialtiesList.add(specialty.getName());
+                specialtiesList.add(specialty.getSpecialty());
             }
             return new ResponseEntity<>(specialtiesList, HttpStatus.OK);
         }
