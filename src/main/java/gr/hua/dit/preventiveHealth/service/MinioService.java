@@ -2,7 +2,7 @@ package gr.hua.dit.preventiveHealth.service;
 
 import io.minio.*;
 import io.minio.errors.MinioException;
-import io.minio.messages.Item;
+import io.minio.http.Method;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -67,7 +66,7 @@ public class MinioService {
     }
 
     public List<String> listPatientFiles(String fullName, Integer patientId) {
-        String prefix = String.format("patients/%s_%d/appointments/",
+        String prefix = String.format("%s_%d/appointments/",
                 fullName.replaceAll("\\s+", "_"), patientId);
 
         try {
@@ -88,7 +87,7 @@ public class MinioService {
     }
 
     public String listPatientFile(String fullName, Integer patientId, Integer appointmentId) {
-        String prefix = String.format("patients/%s_%d/appointments/%d/",
+        String prefix = String.format("%s_%d/appointments/%d/",
                 fullName.replaceAll("\\s+", "_"), patientId, appointmentId);
         System.out.println("Generated prefix: " + prefix);
 
@@ -108,6 +107,20 @@ public class MinioService {
 
         } catch (Exception e) {
             throw new RuntimeException("Error listing file for patient and appointment", e);
+        }
+    }
+
+    public String getPresignedUrl(String filePath) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .bucket(bucketName)
+                            .object(filePath)
+                            .method(Method.GET)
+                            .expiry(120)
+                            .build());
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating presigned URL", e);
         }
     }
 }

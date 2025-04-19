@@ -34,6 +34,12 @@ public class MedicalExam {
     public MedicalExam() {
     }
 
+    public MedicalExam(String fileName, String filePath, Appointment appointment) {
+        this.fileName = fileName;
+        this.filePath = filePath;
+        this.appointment = appointment;
+    }
+
     public Long getId() {
         return id;
     }
