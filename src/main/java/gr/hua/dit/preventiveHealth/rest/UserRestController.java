@@ -6,6 +6,7 @@ import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
+import gr.hua.dit.preventiveHealth.service.MedicalExamService;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,8 @@ public class UserRestController{
 
     @Autowired
     private RatingSpecialistRepository ratingSpecialistRepository;
+    @Autowired
+    private MedicalExamService medicalExamService;
 
     @GetMapping("find_specialist")
     public ResponseEntity<?> getAllSpecialties(@RequestParam (required = false) String specialty, @RequestParam (required = false) String speciality_min, @RequestParam (required = false) String city) {
@@ -149,6 +152,49 @@ public class UserRestController{
         } else {
             return ResponseEntity.ok(user);
         }
+    }
+
+    @GetMapping("{userId}/examFiles")
+    public ResponseEntity<?> getAllExamFile(@PathVariable Integer userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Integer user_id = userDAO.getUserId(authentication.getName());
+        if (userId.equals(user_id)){
+            List<Map<String,Object>> medicalExams= medicalExamService.getFileRecords(userId);
+            return ResponseEntity.ok(medicalExams);
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("You are not allowed to access this source.");
+    }
+
+    @GetMapping("specialist/{userId}/allRatings")
+    public ResponseEntity<?> allRatings(@PathVariable Integer userId){
+        User user = userDAO.getUserProfile(userId);
+        String userRole = user.getRoles().stream().findFirst().map(Role :: getRoleName).orElse("No role found");
+        List<RatingSpecialist> ratingSpecialist;
+
+        if(userRole.equals("ROLE_DIAGNOSTIC")){
+            ratingSpecialist = ratingSpecialistRepository.getRatingSpecialistByDiagnosticCenterId(userId);
+        } else if (userRole.equals("ROLE_DOCTOR")) {
+            ratingSpecialist = ratingSpecialistRepository.getRatingSpecialistByDoctorId(userId);
+        }else{
+            return ResponseEntity.badRequest().body("User provided is not authorized for ratings");
+        }
+
+        List<Map<String,Object>> allRatings = ratingSpecialist.stream().map(rating -> {
+            Map<String,Object> filteredRating = new HashMap<>();
+            filteredRating.put("rating", rating.getRating());
+            filteredRating.put("ratingDescription", rating.getRatingDescription());
+            filteredRating.put("patientFullName", rating.getPatient().getFullName());
+            if(userRole.equals("ROLE_DOCTOR")){
+                filteredRating.put("doctorFullName", rating.getDoctor().getFullName());
+                filteredRating.put("doctorAddress", rating.getDoctor().getAddress()+ rating.getDoctor().getCity() + rating.getDoctor().getState());
+            }else {
+                filteredRating.put("diagnosticFullName", rating.getDiagnosticCenter().getFullName());
+                filteredRating.put("diagnosticAddress", rating.getDiagnosticCenter().getAddress()+ ", " + rating.getDiagnosticCenter().getCity() + ", " + rating.getDiagnosticCenter().getState());
+            }
+            return filteredRating;
+        }).toList();
+        return ResponseEntity.ok(allRatings);
     }
 
     @GetMapping("specialist/{userId}/rating")
