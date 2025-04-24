@@ -1,4 +1,4 @@
-package gr.hua.dit.preventiveHealth.config;
+package gr.hua.dit.preventiveHealth.config.jwtToken;
 
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.servlet.FilterChain;

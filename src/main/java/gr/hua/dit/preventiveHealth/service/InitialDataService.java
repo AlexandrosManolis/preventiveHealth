@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.service;
 
+import gr.hua.dit.preventiveHealth.config.email.GmailAuth;
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
 import gr.hua.dit.preventiveHealth.entity.users.*;
@@ -39,6 +40,9 @@ public class InitialDataService {
   
     @Autowired
     private DiagnosticRepository diagnosticRepository;
+
+    @Autowired
+    private GmailAuth gmailAuth;
 
     @Autowired
     public InitialDataService(UserRepository userRepository,
@@ -184,6 +188,13 @@ public class InitialDataService {
     public void setup() {
         this.createRolesUsers();
         this.addSpecialties();
+
+        try {
+            gmailAuth.getCredentials();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         this.everyDayCheckAppointments();
     }
 }

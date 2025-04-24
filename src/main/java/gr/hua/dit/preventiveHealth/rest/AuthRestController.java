@@ -1,6 +1,6 @@
 package gr.hua.dit.preventiveHealth.rest;
 
-import gr.hua.dit.preventiveHealth.config.JwtUtils;
+import gr.hua.dit.preventiveHealth.config.jwtToken.JwtUtils;
 import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.request.DiagnosticSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.request.DoctorSignupRequest;
