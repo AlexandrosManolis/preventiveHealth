@@ -10,6 +10,9 @@ import gr.hua.dit.preventiveHealth.service.MedicalExamService;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -19,10 +22,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import gr.hua.dit.preventiveHealth.payload.validation.Update;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.http.MediaType;
+
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -59,6 +65,20 @@ public class UserRestController{
     private RatingSpecialistRepository ratingSpecialistRepository;
     @Autowired
     private MedicalExamService medicalExamService;
+
+    @GetMapping("/get-logo")
+    public ResponseEntity<Resource> getLogo(){
+        ClassPathResource imgFile = new ClassPathResource("static/home-image.webp");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.valueOf("image/webp"));
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .body(imgFile);
+    }
+
 
     @GetMapping("find_specialist")
     public ResponseEntity<?> getAllSpecialties(@RequestParam (required = false) String specialty, @RequestParam (required = false) String speciality_min, @RequestParam (required = false) String city) {
