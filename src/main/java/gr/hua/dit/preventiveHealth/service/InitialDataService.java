@@ -3,8 +3,11 @@ package gr.hua.dit.preventiveHealth.service;
 import gr.hua.dit.preventiveHealth.config.email.GmailAuth;
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.entity.medicalExams.MedicalExamSharing;
 import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
+import gr.hua.dit.preventiveHealth.repository.MedicalExamSharingRepository;
+import gr.hua.dit.preventiveHealth.repository.ReminderFormRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.DiagnosticRepository;
 
 import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
@@ -12,11 +15,14 @@ import gr.hua.dit.preventiveHealth.repository.usersRepository.SpecialtiesReposit
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -33,16 +39,22 @@ public class InitialDataService {
 
     @Autowired
     private UserDAO userDAO;
+
     @Autowired
     private SpecialtiesRepository specialtiesRepository;
+
     @Autowired
     private AppointmentRepository appointmentRepository;
-  
-    @Autowired
-    private DiagnosticRepository diagnosticRepository;
 
     @Autowired
     private GmailAuth gmailAuth;
+
+    @Autowired
+    private GmailService gmailService;
+    @Autowired
+    private ReminderFormRepository reminderFormRepository;
+    @Autowired
+    private MedicalExamSharingRepository medicalExamSharingRepository;
 
     @Autowired
     public InitialDataService(UserRepository userRepository,
@@ -83,7 +95,7 @@ public class InitialDataService {
 
         userRepository.findByUsername("admin").orElseGet(()-> {
 
-            User adminUser = new User("admin", this.passwordEncoder.encode("admin"),"admin@example.com","Admin","+306912345678");
+            User adminUser = new User("admin", this.passwordEncoder.encode("admin"),"staffAdmin@hua.gr","Admin","+306912345678");
             Set<Role> roles = new HashSet<>();
             roles.add(roleRepository.findByRoleName("ROLE_ADMIN").orElseThrow(()-> new RuntimeException("Admin role not found")));
             adminUser.setRoles(roles);
@@ -94,7 +106,7 @@ public class InitialDataService {
 
         userRepository.findByUsername("user1").orElseGet(()-> {
 
-            User user = new User("user1", this.passwordEncoder.encode("user1!"),"user1@example.com","User1","+306923456781");
+            User user = new User("user1", this.passwordEncoder.encode("user1!"),"phd1@hua.gr","User1","+306923456781");
             Patient patient = new Patient(user,Patient.Gender.MALE, "23/05/1998", "23059812345");
             Set<Role> roles = new HashSet<>();
             roles.add(roleRepository.findByRoleName("ROLE_PATIENT").orElseThrow(()-> new RuntimeException("Patient role not found")));
@@ -183,6 +195,46 @@ public class InitialDataService {
         }
     }
 
+    @Scheduled(cron = "0 0 11 * * ?")
+    public void sendNotifications() {
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+
+        List<Appointment> allAppointments = appointmentRepository.findAll();
+
+        for (Appointment appointment : allAppointments) {
+            if (appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED && appointment.getAppointmentStatus() == Appointment.AppointmentStatus.PENDING) {
+                LocalDate appointmentDate = appointment.getDate();
+
+                // Check if the appointment is today or tomorrow
+                if (appointmentDate.isEqual(today) || appointmentDate.isEqual(tomorrow)) {
+                    if (appointment.getDoctor() != null){
+                        gmailService.sendEmail(appointment.getPatient().getUser().getEmail(), "Next Appointment", "Your next appointment with Dr. "+ appointment.getDoctor().getFullName() +" is coming. You have an appointment at" + appointmentDate + " : " + appointment.getTime());
+                    }else {
+                        gmailService.sendEmail(appointment.getPatient().getUser().getEmail(), "Next Appointment", "Your next appointment with Dr. "+ appointment.getDiagnosticCenter().getFullName() +" is coming. You have an appointment at" + appointmentDate + " : " + appointment.getTime());
+                    }
+                }
+            }
+        }
+
+        List<ReminderForm> reminderForms = reminderFormRepository.findAll();
+        for (ReminderForm reminderForm : reminderForms){
+            LocalDate nextExamDate = reminderForm.getNextExamDateReminder();
+
+            long daysBetween = ChronoUnit.DAYS.between(today, nextExamDate);
+
+            if (daysBetween == 4 || daysBetween == 7 || daysBetween == 14) {
+                gmailService.sendEmail(reminderForm.getPatient().getUser().getEmail(), "Reminder for next appointment", "Your next appointment reminder with a "+ reminderForm.getSpecialty() +" is coming. Your next estimated required appointment is: " + reminderForm.getNextExamDateReminder() + ". You have to make an appointment soon. Preventive health is the best pharmacy for your health.");
+            }
+        }
+    }
+
+    @Scheduled(cron = "0 0 * * * *")
+    public void checkExamSharing(){
+        LocalDateTime now = LocalDateTime.now();
+        medicalExamSharingRepository.deleteByExpirationTimeLessThanEqual(now);
+    }
+
     //when program starts call functions
     @PostConstruct
     public void setup() {
@@ -196,5 +248,7 @@ public class InitialDataService {
         }
 
         this.everyDayCheckAppointments();
+        this.sendNotifications();
+        this.checkExamSharing();
     }
 }

@@ -65,6 +65,8 @@ public class Patient{
         }
     }
 
+    private String folderName;
+
     public Patient() {
     }
 
@@ -81,6 +83,14 @@ public class Patient{
         this.gender = gender;
         this.birthday = parseBirthday(birthdayStr);
         this.amka = amka;
+    }
+
+    public String getFolderName() {
+        return folderName;
+    }
+
+    public void setFolderName(String folderName) {
+        this.folderName = folderName;
     }
 
     public Integer getId() {

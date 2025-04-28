@@ -6,6 +6,7 @@ import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
+import gr.hua.dit.preventiveHealth.service.GmailService;
 import gr.hua.dit.preventiveHealth.service.MedicalExamService;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.transaction.Transactional;
@@ -22,7 +23,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import gr.hua.dit.preventiveHealth.payload.validation.Update;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -63,8 +63,9 @@ public class UserRestController{
 
     @Autowired
     private RatingSpecialistRepository ratingSpecialistRepository;
+
     @Autowired
-    private MedicalExamService medicalExamService;
+    private GmailService gmailService;
 
     @GetMapping("/get-logo")
     public ResponseEntity<Resource> getLogo(){
@@ -172,18 +173,6 @@ public class UserRestController{
         } else {
             return ResponseEntity.ok(user);
         }
-    }
-
-    @GetMapping("{userId}/examFiles")
-    public ResponseEntity<?> getAllExamFile(@PathVariable Integer userId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        Integer user_id = userDAO.getUserId(authentication.getName());
-        if (userId.equals(user_id)){
-            List<Map<String,Object>> medicalExams= medicalExamService.getFileRecords(userId);
-            return ResponseEntity.ok(medicalExams);
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("You are not allowed to access this source.");
     }
 
     @GetMapping("specialist/{userId}/allRatings")
@@ -421,7 +410,7 @@ public class UserRestController{
                     userDetails.setEmail(the_user.getEmail());
                 }
             }
-
+            gmailService.sendEmail(user.getEmail(),"Your account details have been successfully updated.", "Your account details have been successfully updated. If you did not authorize these changes, please contact us immediately.");
             return new ResponseEntity<>(the_user, HttpStatus.OK);
         } catch (Exception e) {
             String errorMessage = "Error saving user: " + e.getMessage();
