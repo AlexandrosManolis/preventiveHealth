@@ -1,5 +1,6 @@
 package gr.hua.dit.preventiveHealth.config.email;
 
+import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -8,9 +9,6 @@ import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.gmail.Gmail;
-import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.auth.oauth2.AccessToken;
-import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -21,31 +19,31 @@ import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 
 @Service
 public class GmailAuth {
 
-    private static GoogleCredentials cachedCredentials;
+    private static Credential credential;
     private static final long EXPIRY_THRESHOLD_MS = 60_000;
     private static final String TOKEN_DIR = "tokens";
     private static final String CREDENTIALS_PATH = "/credentials.json";
     private static final String CREDENTIAL_HASH_PATH = TOKEN_DIR + "/credentials.hash";
 
-    public synchronized GoogleCredentials getCredentials() throws Exception {
-        if (cachedCredentials == null) {
+    public synchronized Credential getCredentials() throws Exception {
+        if (credential == null) {
             initialize();
         }
 
-        AccessToken token = cachedCredentials.getAccessToken();
-        if (token == null || isExpiringSoon(token)) {
+        // Check if token is expiring soon
+        if (credential.getExpiresInSeconds() != null &&
+                credential.getExpiresInSeconds() <= EXPIRY_THRESHOLD_MS / 1000) {
             System.out.println("🔄 Refreshing token...");
-            cachedCredentials.refreshIfExpired();
+            credential.refreshToken();
         } else {
             System.out.println("✅ Token is valid. Using cached credentials.");
         }
 
-        return cachedCredentials;
+        return credential;
     }
 
     private void initialize() throws Exception {
@@ -70,7 +68,10 @@ public class GmailAuth {
 
         // Reload input stream for actual use
         InputStream secretsStream = new ByteArrayInputStream(credentialsBytes);
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(), new InputStreamReader(secretsStream));
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(
+                GsonFactory.getDefaultInstance(),
+                new InputStreamReader(secretsStream)
+        );
 
         var flow = new GoogleAuthorizationCodeFlow.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(),
@@ -82,7 +83,7 @@ public class GmailAuth {
                 .setAccessType("offline")
                 .build();
 
-        var credential = flow.loadCredential("user");
+        credential = flow.loadCredential("user");
 
         if (credential == null || credential.getAccessToken() == null ||
                 (credential.getExpiresInSeconds() != null && credential.getExpiresInSeconds() <= 60)) {
@@ -93,16 +94,11 @@ public class GmailAuth {
         } else {
             System.out.println("✅ Valid Gmail token found.");
         }
-
-        cachedCredentials = GoogleCredentials.create(new AccessToken(
-                credential.getAccessToken(),
-                credential.getExpirationTimeMilliseconds() > 0 ? new Date(credential.getExpirationTimeMilliseconds()) : null
-        )).createScoped(Collections.singleton("https://www.googleapis.com/auth/gmail.send"));
     }
 
-    private boolean isExpiringSoon(AccessToken token) {
-        if (token.getExpirationTime() == null) return true;
-        return token.getExpirationTime().getTime() - System.currentTimeMillis() < EXPIRY_THRESHOLD_MS;
+    private boolean isExpiringSoon(Credential credential) {
+        if (credential.getExpiresInSeconds() == null) return true;
+        return credential.getExpiresInSeconds() <= EXPIRY_THRESHOLD_MS / 1000;
     }
 
     private void deleteTokensFolder() {
@@ -130,7 +126,7 @@ public class GmailAuth {
         return new Gmail.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(),
                 GsonFactory.getDefaultInstance(),
-                new HttpCredentialsAdapter(getCredentials()))
+                getCredentials())
                 .setApplicationName("Gmail Sender")
                 .build();
     }

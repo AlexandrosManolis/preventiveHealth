@@ -12,6 +12,7 @@ import gr.hua.dit.preventiveHealth.payload.validation.Create;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.RegisterRequestRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
+import gr.hua.dit.preventiveHealth.service.GmailService;
 import gr.hua.dit.preventiveHealth.service.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,9 @@ public class AuthRestController {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private GmailService gmailService;
 
     //check username and password and if they are right set token and enter the platform
     @PostMapping("signin")
@@ -106,7 +110,7 @@ public class AuthRestController {
         if (userRepository.existsByPatient_Amka(signupRequest.getAmka())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new MessageResponse("Error: Afm is already in use!"));
+                    .body(new MessageResponse("Error: AMKA is already in use!"));
         }
 
         // Create new user's account
@@ -134,6 +138,8 @@ public class AuthRestController {
 
         //save user
         userRepository.save(user);
+
+        gmailService.sendEmail(user.getEmail(),"Registration completed", "Registration completed. Login to your account to access more features.");
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
@@ -209,6 +215,8 @@ public class AuthRestController {
 
         registerRequestRepository.save(registerRequest);
 
+        gmailService.sendEmail(user.getEmail(),"Registration completed", "Registration completed. Registration request created. You will be updated on the progress shortly.");
+
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
@@ -283,6 +291,8 @@ public class AuthRestController {
         registerRequest.setStatus(RegisterRequest.Status.PENDING);
 
         registerRequestRepository.save(registerRequest);
+
+        gmailService.sendEmail(user.getEmail(),"Registration completed", "Registration completed. Registration request created. You will be updated on the progress shortly.");
 
         return new ResponseEntity<>(user, HttpStatus.CREATED);
     }

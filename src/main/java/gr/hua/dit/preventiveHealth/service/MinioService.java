@@ -1,53 +1,83 @@
 package gr.hua.dit.preventiveHealth.service;
 
+import gr.hua.dit.preventiveHealth.dao.UserDAO;
+import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.PatientRepository;
 import io.minio.*;
-import io.minio.errors.MinioException;
-import io.minio.http.Method;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Service
 public class MinioService {
+    private static final Logger logger = LoggerFactory.getLogger(MinioService.class);
 
     @Autowired
-    MinioClient minioClient;
+    private MinioClient minioClient;
+
+    @Autowired
+    private UserDAO userDAO;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
     @Value("${minio.bucket-name}")
     private String bucketName;
 
-    public InputStream downloadFile(String filePath) {
+    @Autowired
+    private PatientRepository patientRepository;
+
+    public byte[] getFileContent(String filePath) {
         try {
-            return minioClient.getObject(
-                    GetObjectArgs.builder().bucket(bucketName).object(filePath).build());
-        } catch (InvalidKeyException | NoSuchAlgorithmException e) {
-            throw new RuntimeException("Security error while downloading the file: " + e.getMessage(), e);
-        } catch (MinioException e) {
-            throw new RuntimeException("Error downloading the file from MinIO: " + e.getMessage(), e);
-        } catch (IOException e) {
-            throw new RuntimeException("I/O error occurred while downloading the file: " + e.getMessage(), e);
+            // Get object from MinIO
+            GetObjectResponse response = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(filePath)
+                            .build()
+            );
+
+            // Read the file content into a byte array
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[16384]; // 16KB buffer
+            int bytesRead;
+
+            while ((bytesRead = response.read(buffer, 0, buffer.length)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            response.close();
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            logger.error("Error getting file content for {}: {}", filePath, e.getMessage(), e);
+            throw new RuntimeException("Error getting file content: " + e.getMessage(), e);
         }
     }
 
-
-    public void uploadFile(String filePath, MultipartFile file) {
+    public void uploadFile(String filePath, MultipartFile file, Integer patientId) {
         try {
+            verifyFileAccessAuthorization(patientId);
+            logger.info("Uploading file to path: {} for patient: {}", filePath, patientId);
+
             if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
+                logger.info("Bucket {} does not exist. Creating...", bucketName);
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
             }
 
-            String contentType = file.getContentType() != null ? file.getContentType() :
-                    Files.probeContentType(file.getResource().getFile().toPath());
+            String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
 
             try (InputStream inputStream = file.getInputStream()) {
                 minioClient.putObject(
@@ -56,71 +86,68 @@ public class MinioService {
                                 .object(filePath)
                                 .stream(inputStream, file.getSize(), -1)
                                 .contentType(contentType)
-                                .build());
+                                .build()
+                );
+                logger.info("File uploaded successfully to path: {}", filePath);
             }
-
-            System.out.println("File uploaded successfully: " + filePath);
         } catch (Exception e) {
-            throw new RuntimeException("Error uploading file to MinIO: " + filePath, e);
+            logger.error("Error uploading file {}: {}", filePath, e.getMessage(), e);
+            throw new RuntimeException("Error uploading file to MinIO: " + e.getMessage(), e);
         }
     }
 
-    public List<String> listPatientFiles(String fullName, Integer patientId) {
-        String prefix = String.format("%s_%d/appointments/",
-                fullName.replaceAll("\\s+", "_"), patientId);
-
+    /**
+     * List files for a specific appointment
+     */
+    public String listPatientFile(Integer patientId, String specialty) {
         try {
-            return StreamSupport.stream(minioClient.listObjects(
-                                    ListObjectsArgs.builder().bucket(bucketName).prefix(prefix).recursive(true).build())
-                            .spliterator(), false)
+            verifyFileAccessAuthorization(patientId);
+            String prefix = String.format("%s/%s/", patientRepository.findFolderNameById(patientId), specialty);
+            logger.info("Searching for file with prefix: {}", prefix);
+
+            return StreamSupport.stream(
+                            minioClient.listObjects(ListObjectsArgs.builder()
+                                    .bucket(bucketName).prefix(prefix).recursive(true).build()
+                            ).spliterator(), false)
                     .map(result -> {
                         try {
                             return result.get().objectName();
                         } catch (Exception e) {
-                            throw new RuntimeException("Error fetching object name", e);
+                            logger.error("Failed to retrieve object name: {}", e.getMessage(), e);
+                            throw new RuntimeException("Failed to retrieve object name from MinIO response", e);
                         }
-                    })
-                    .collect(Collectors.toList());
+                    }).findFirst().orElse(null);
         } catch (Exception e) {
-            throw new RuntimeException("Error listing files", e);
+            logger.error("Error listing file for patient {}: {}",
+                    patientId, e.getMessage(), e);
+            throw new RuntimeException("Failed to list patient files from MinIO: " + e.getMessage(), e);
         }
     }
 
-    public String listPatientFile(String fullName, Integer patientId, Integer appointmentId) {
-        String prefix = String.format("%s_%d/appointments/%d/",
-                fullName.replaceAll("\\s+", "_"), patientId, appointmentId);
-        System.out.println("Generated prefix: " + prefix);
+    // ------------ Authorization & Consent ------------
 
-        try {
-            return StreamSupport.stream(minioClient.listObjects(
-                                    ListObjectsArgs.builder().bucket(bucketName).prefix(prefix).recursive(true).build())
-                            .spliterator(), false)
-                    .map(result -> {
-                        try {
-                            return result.get().objectName();
-                        } catch (Exception e) {
-                            throw new RuntimeException("Error fetching object name", e);
-                        }
-                    })
-                    .findFirst()
-                    .orElse(null);
+    private void verifyFileAccessAuthorization(Integer patientId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Integer userId = userDAO.getUserId(username);
+        String userRole = userService.getUserRole();
 
-        } catch (Exception e) {
-            throw new RuntimeException("Error listing file for patient and appointment", e);
+        boolean authorized = false;
+
+        if ("ROLE_PATIENT".equals(userRole) && userId.equals(patientId)) {
+            authorized = true;
+        } else if ("ROLE_DOCTOR".equals(userRole)) {
+            authorized = appointmentRepository.existsByPatientIdAndDoctorId(patientId, userId);
+        } else if ("ROLE_DIAGNOSTIC".equals(userRole)) {
+            authorized = appointmentRepository.existsByPatientIdAndDiagnosticId(patientId, userId);
+        } else if ("ROLE_ADMIN".equals(userRole)) {
+            authorized = true;
         }
-    }
 
-    public String getPresignedUrl(String filePath) {
-        try {
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .bucket(bucketName)
-                            .object(filePath)
-                            .method(Method.GET)
-                            .expiry(120)
-                            .build());
-        } catch (Exception e) {
-            throw new RuntimeException("Error generating presigned URL", e);
+        if (!authorized) {
+            logger.warn("Unauthorized access attempt for patient {} by user {} with role {}",
+                    patientId, userId, userRole);
+            throw new SecurityException("Unauthorized access attempt.");
         }
     }
 }

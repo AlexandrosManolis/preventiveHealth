@@ -1,16 +1,13 @@
 package gr.hua.dit.preventiveHealth.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.Appointment;
 import gr.hua.dit.preventiveHealth.entity.ReminderForm;
 import gr.hua.dit.preventiveHealth.entity.users.Patient;
-import gr.hua.dit.preventiveHealth.entity.users.Specialties;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.AppointmentRepository;
 import gr.hua.dit.preventiveHealth.repository.ReminderFormRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.PatientRepository;
-import gr.hua.dit.preventiveHealth.repository.usersRepository.SpecialtiesRepository;
 import gr.hua.dit.preventiveHealth.service.ReminderFormService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,8 +16,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,14 +26,16 @@ public class ReminderFormRestController {
 
     @Autowired
     private ReminderFormRepository reminderFormRepository;
+
     @Autowired
     private UserDAO userDAO;
+
     @Autowired
     private PatientRepository patientRepository;
+
     @Autowired
     private AppointmentRepository appointmentRepository;
-    @Autowired
-    private SpecialtiesRepository specialtiesRepository;
+
     @Autowired
     private ReminderFormService reminderFormService;
 
@@ -118,6 +115,4 @@ public class ReminderFormRestController {
             throw new IllegalArgumentException(e.getMessage() + "Error saving form.");
         }
     }
-
-
 }

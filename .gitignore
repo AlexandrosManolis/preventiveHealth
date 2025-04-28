@@ -36,3 +36,4 @@ credentials.json
 **/credentials.json
 tokens/
 **/tokens/
+.env
