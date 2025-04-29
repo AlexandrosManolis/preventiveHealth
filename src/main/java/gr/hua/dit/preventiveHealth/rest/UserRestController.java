@@ -244,8 +244,14 @@ public class UserRestController{
         return new ResponseEntity<>(newRatingSpecialist, HttpStatus.OK);
     }
 
-    @GetMapping("specialties")
+    @GetMapping("allSpecialties")
     public ResponseEntity<?> getAllSpecialties() {
+        List<Specialties> specialties = specialtiesRepository.findAll();
+        return ResponseEntity.ok(specialties);
+    }
+
+    @GetMapping("specialties")
+    public ResponseEntity<?> getSpecialties() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
