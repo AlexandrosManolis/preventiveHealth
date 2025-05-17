@@ -40,9 +40,9 @@ services:
     env_file: .env
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
-      /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME};
-      /usr/bin/mc anonymous set download myminio/${MINIO_BUCKET_NAME};
+      /usr/bin/mc config host add s3server http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
+      /usr/bin/mc mb s3server/${MINIO_BUCKET_NAME};
+      /usr/bin/mc anonymous set download s3server/${MINIO_BUCKET_NAME};
       exit 0;
       "
 
