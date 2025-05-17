@@ -7,7 +7,6 @@ import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
 import gr.hua.dit.preventiveHealth.service.GmailService;
-import gr.hua.dit.preventiveHealth.service.MedicalExamService;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
