@@ -42,6 +42,9 @@ public class InitialDataService {
 
     @Autowired
     private AppointmentRepository appointmentRepository;
+  
+    @Autowired
+    private DiagnosticRepository diagnosticRepository;
 
     @Autowired
     private GmailAuth gmailAuth;

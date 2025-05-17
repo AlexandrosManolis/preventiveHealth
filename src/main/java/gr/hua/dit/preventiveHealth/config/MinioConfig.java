@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 public class MinioConfig {
     private static final Logger logger = LoggerFactory.getLogger(MinioConfig.class);
 
+
     @Value("${minio.url}")
     private String minioUrl;
 
