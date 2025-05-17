@@ -2,6 +2,7 @@ package gr.hua.dit.preventiveHealth.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import gr.hua.dit.preventiveHealth.entity.medicalExams.MedicalExam;
 import gr.hua.dit.preventiveHealth.entity.users.DiagnosticCenter;
 import gr.hua.dit.preventiveHealth.entity.users.Doctor;
 import gr.hua.dit.preventiveHealth.entity.users.Patient;

@@ -1,4 +1,4 @@
-package gr.hua.dit.preventiveHealth.config;
+package gr.hua.dit.preventiveHealth.config.jwtToken;
 
 import io.jsonwebtoken.*;
 import org.slf4j.Logger;

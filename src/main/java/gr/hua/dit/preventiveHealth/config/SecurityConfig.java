@@ -1,5 +1,7 @@
 package gr.hua.dit.preventiveHealth.config;
 
+import gr.hua.dit.preventiveHealth.config.jwtToken.AuthEntryPointJwt;
+import gr.hua.dit.preventiveHealth.config.jwtToken.AuthTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

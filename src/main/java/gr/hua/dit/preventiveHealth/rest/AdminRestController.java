@@ -1,11 +1,11 @@
 package gr.hua.dit.preventiveHealth.rest;
 
-import gr.hua.dit.preventiveHealth.dao.UserDAO;
 import gr.hua.dit.preventiveHealth.entity.users.RegisterRequest;
 import gr.hua.dit.preventiveHealth.entity.users.User;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.RegisterRequestRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
+import gr.hua.dit.preventiveHealth.service.GmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("api/admin")
@@ -24,6 +23,8 @@ public class AdminRestController {
     private UserRepository userRepository;
     @Autowired
     private RegisterRequestRepository registerRequestRepository;
+    @Autowired
+    private GmailService gmailService;
 
     @GetMapping("")
     public ResponseEntity<?> getAllUsers(){
@@ -57,6 +58,8 @@ public class AdminRestController {
         if(request.getStatus() == RegisterRequest.Status.PENDING){
             request.setStatus(RegisterRequest.Status.ACCEPTED);
             registerRequestRepository.save(request);
+
+            gmailService.sendEmail(request.getUser().getEmail(),"Accepted register request", "Your Register request has been accepted. Login to your account to learn more.");
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("User has no pending request"));
         }
@@ -70,6 +73,8 @@ public class AdminRestController {
             request.setStatus(RegisterRequest.Status.REJECTED);
             request.setDescription(reason);
             registerRequestRepository.save(request);
+
+            gmailService.sendEmail(request.getUser().getEmail(),"Rejected register request", "Your Register request has been rejected. Login to your account to learn more.");
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("User has no pending request"));
         }

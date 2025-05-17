@@ -6,9 +6,13 @@ import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.repository.*;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
+import gr.hua.dit.preventiveHealth.service.GmailService;
 import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -22,6 +26,8 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.http.MediaType;
+
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -56,6 +62,23 @@ public class UserRestController{
 
     @Autowired
     private RatingSpecialistRepository ratingSpecialistRepository;
+
+    @Autowired
+    private GmailService gmailService;
+
+    @GetMapping("/get-logo")
+    public ResponseEntity<Resource> getLogo(){
+        ClassPathResource imgFile = new ClassPathResource("static/home-image.webp");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.valueOf("image/webp"));
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .body(imgFile);
+    }
+
 
     @GetMapping("find_specialist")
     public ResponseEntity<?> getAllSpecialties(@RequestParam (required = false) String specialty, @RequestParam (required = false) String speciality_min, @RequestParam (required = false) String city) {
@@ -151,47 +174,35 @@ public class UserRestController{
         }
     }
 
-    @GetMapping("specialist/{userId}/rating")
-    public ResponseEntity<?> specialistRating(@PathVariable Integer userId) {
-        Map<String, Object> response = new HashMap<>();
+    @GetMapping("specialist/{userId}/allRatings")
+    public ResponseEntity<?> allRatings(@PathVariable Integer userId){
+        User user = userDAO.getUserProfile(userId);
+        String userRole = user.getRoles().stream().findFirst().map(Role :: getRoleName).orElse("No role found");
+        List<RatingSpecialist> ratingSpecialist;
 
-        Double averageSpecialistRating = userDAO.averageSpecialistRating(userId);
-
-        if(averageSpecialistRating == null){
-            averageSpecialistRating = 0.0;
-        }
-        response.put("averageSpecialistRating", averageSpecialistRating);
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser") && authentication.getAuthorities().toString().contains("ROLE_PATIENT")) {
-            String username = authentication.getName();
-            Integer patientId = userDAO.getUserId(username);
-
-            User user = userDAO.getUserProfile(userId);
-            String userRole = user.getRoles().stream().anyMatch(role -> role.equals("ROLE_DOCTOR")) ? "ROLE_DOCTOR" : "ROLE_DIAGNOSTIC";
-            Boolean exists;
-            Integer ratingNumber = null;
-
-            if (userRole.equals("ROLE_DOCTOR")) {
-
-                exists = ratingSpecialistRepository.existsByDoctorIdAndPatientId(userId, patientId);
-                if(exists){
-                    ratingNumber = ratingSpecialistRepository.findRatingByDoctorIdAndPatientId(userId, patientId);
-                }
-            }else{
-                exists = ratingSpecialistRepository.existsByDiagnosticCenterIdAndPatientId(userId, patientId);
-                if(exists){
-                    ratingNumber = ratingSpecialistRepository.findRatingByDiagnosticCenterIdAndPatientId(userId, patientId);
-                }
-            }
-
-            response.put("ratingExists", exists);
-            if(exists && ratingNumber != null){
-                response.put("patientRating", ratingNumber);
-            }
+        if(userRole.equals("ROLE_DIAGNOSTIC")){
+            ratingSpecialist = ratingSpecialistRepository.getRatingSpecialistByDiagnosticCenterId(userId);
+        } else if (userRole.equals("ROLE_DOCTOR")) {
+            ratingSpecialist = ratingSpecialistRepository.getRatingSpecialistByDoctorId(userId);
+        }else{
+            return ResponseEntity.badRequest().body("User provided is not authorized for ratings");
         }
 
-        return ResponseEntity.ok(response);
+        List<Map<String,Object>> allRatings = ratingSpecialist.stream().map(rating -> {
+            Map<String,Object> filteredRating = new HashMap<>();
+            filteredRating.put("rating", rating.getRating());
+            filteredRating.put("ratingDescription", rating.getRatingDescription());
+            filteredRating.put("patientFullName", rating.getPatient().getFullName());
+            if(userRole.equals("ROLE_DOCTOR")){
+                filteredRating.put("doctorFullName", rating.getDoctor().getFullName());
+                filteredRating.put("doctorAddress", rating.getDoctor().getAddress()+ rating.getDoctor().getCity() + rating.getDoctor().getState());
+            }else {
+                filteredRating.put("diagnosticFullName", rating.getDiagnosticCenter().getFullName());
+                filteredRating.put("diagnosticAddress", rating.getDiagnosticCenter().getAddress()+ ", " + rating.getDiagnosticCenter().getCity() + ", " + rating.getDiagnosticCenter().getState());
+            }
+            return filteredRating;
+        }).toList();
+        return ResponseEntity.ok(allRatings);
     }
 
     @PostMapping("specialist/{userId}/rating")
@@ -232,8 +243,14 @@ public class UserRestController{
         return new ResponseEntity<>(newRatingSpecialist, HttpStatus.OK);
     }
 
-    @GetMapping("specialties")
+    @GetMapping("allSpecialties")
     public ResponseEntity<?> getAllSpecialties() {
+        List<Specialties> specialties = specialtiesRepository.findAll();
+        return ResponseEntity.ok(specialties);
+    }
+
+    @GetMapping("specialties")
+    public ResponseEntity<?> getSpecialties() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
@@ -287,8 +304,6 @@ public class UserRestController{
     public ResponseEntity<?> specialistRating(@PathVariable Integer userId) {
         Map<String, Object> response = new HashMap<>();
 
-
-
         Double averageSpecialistRating = userDAO.averageSpecialistRating(userId);
 
         if(averageSpecialistRating == null){
@@ -326,75 +341,6 @@ public class UserRestController{
         }
 
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("specialist/{userId}/rating")
-    public ResponseEntity<?> rateSpecialist(@PathVariable Integer userId, @RequestBody RatingSpecialist ratingSpecialist) {
-        User user = userDAO.getUserProfile(userId);
-        String userRole = user.getRoles().stream().anyMatch(role -> role.equals("ROLE_DOCTOR")) ? "ROLE_DOCTOR" : "ROLE_DIAGNOSTIC";
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-        Integer patientId = userDAO.getUserId(username);
-
-        Patient patient = patientRepository.findById(patientId).orElse(null);
-        Doctor doctor = doctorRepository.findById(userId).orElse(null);
-        DiagnosticCenter diagnosticCenter = diagnosticRepository.findById(userId).orElse(null);
-        Boolean exists;
-
-        if (userRole.equals("ROLE_DOCTOR")) {
-
-            exists = ratingSpecialistRepository.existsByDoctorIdAndPatientId(userId, patientId);
-        }else{
-            exists = ratingSpecialistRepository.existsByDiagnosticCenterIdAndPatientId(userId, patientId);
-        }
-
-        if(exists){
-            throw new IllegalArgumentException("You have already rated this doctor.");
-        }
-        RatingSpecialist newRatingSpecialist = new RatingSpecialist();
-
-        newRatingSpecialist.setRating(ratingSpecialist.getRating());
-        newRatingSpecialist.setRatingDescription(ratingSpecialist.getRatingDescription());
-        newRatingSpecialist.setPatient(patient);
-        newRatingSpecialist.setDoctor(doctor);
-        newRatingSpecialist.setDiagnosticCenter(diagnosticCenter);
-
-        ratingSpecialistRepository.save(newRatingSpecialist);
-
-        return new ResponseEntity<>(newRatingSpecialist, HttpStatus.OK);
-    }
-
-    @GetMapping("specialties")
-    public ResponseEntity<?> getAllSpecialties() {
-        List<Specialties> specialties = specialtiesRepository.findAll();
-        return new ResponseEntity<>(specialties, HttpStatus.OK);
-    }
-
-    @GetMapping("{userId}/profile")
-    public ResponseEntity<?> userProfile(@PathVariable Integer userId) {
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        String userRole = userService.getUserRole();
-        Integer authUserId = userDAO.getUserId(username);
-
-        User user = userDAO.getUserProfile(userId);
-
-        if (user == null) {
-            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND); // Return 404 if user does not exist
-        }
-
-        boolean isAdmin = "ROLE_ADMIN".equals(userRole);
-        boolean isOwner = userId.equals(authUserId);
-
-        System.out.println(isOwner);
-        if (!isOwner && !isAdmin) {
-            return new ResponseEntity<>("Unauthorized to access this profile", HttpStatus.UNAUTHORIZED);
-        }
-        user.setPassword(null);
-
-        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @Transactional
@@ -469,7 +415,7 @@ public class UserRestController{
                     userDetails.setEmail(the_user.getEmail());
                 }
             }
-
+            gmailService.sendEmail(user.getEmail(),"Your account details have been successfully updated.", "Your account details have been successfully updated. If you did not authorize these changes, please contact us immediately.");
             return new ResponseEntity<>(the_user, HttpStatus.OK);
         } catch (Exception e) {
             String errorMessage = "Error saving user: " + e.getMessage();

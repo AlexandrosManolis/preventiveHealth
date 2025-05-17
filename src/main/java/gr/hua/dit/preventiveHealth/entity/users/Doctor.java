@@ -54,7 +54,7 @@ public class Doctor {
     public Doctor() {
     }
 
-    public Doctor(User user, String address, String city, String specialty, String state, String doy, String afm, List<OpeningHours> openingHours) {
+    public Doctor(User user, String address, String city,  String state, String doy, String specialty,String afm, List<OpeningHours> openingHours) {
         this.user = user;
         this.address = address;
         this.city = city;

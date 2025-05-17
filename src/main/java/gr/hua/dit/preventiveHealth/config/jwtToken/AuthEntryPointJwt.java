@@ -1,4 +1,4 @@
-package gr.hua.dit.preventiveHealth.config;
+package gr.hua.dit.preventiveHealth.config.jwtToken;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

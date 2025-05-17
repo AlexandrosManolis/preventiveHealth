@@ -11,25 +11,15 @@ import gr.hua.dit.preventiveHealth.repository.usersRepository.DiagnosticReposito
 import gr.hua.dit.preventiveHealth.repository.usersRepository.DoctorRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.PatientRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
-import gr.hua.dit.preventiveHealth.service.MedicalExamService;
-import gr.hua.dit.preventiveHealth.service.MinioService;
-import gr.hua.dit.preventiveHealth.service.ReminderFormService;
-import gr.hua.dit.preventiveHealth.service.UserService;
+import gr.hua.dit.preventiveHealth.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.InputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -63,12 +53,15 @@ public class AppointmentRestController {
 
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private AuthenticationManager authenticationManager;
+
     @Autowired
     private MedicalExamService medicalExamService;
+
     @Autowired
-    private MinioService minioService;
+    private ReminderFormService reminderFormService;
+
+    @Autowired
+    private GmailService gmailService;
 
     @Autowired
     private ReminderFormService reminderFormService;
@@ -313,6 +306,14 @@ public class AppointmentRestController {
             appointment.setRejectionCause(causeOfRejection);
             appointmentRepository.save(appointment);
 
+            if(appointment.getDoctor() != null){
+                gmailService.sendEmail(appointment.getPatient().getUser().getEmail(),"Appointment Cancelled","Your appointment with "+ appointment.getDoctor().getFullName() + " has been cancelled");
+                gmailService.sendEmail(appointment.getDoctor().getUser().getEmail(),"Appointment Cancelled","Your appointment with "+ appointment.getPatient().getFullName() + " has been cancelled");
+            } else if (appointment.getDiagnosticCenter() != null) {
+                gmailService.sendEmail(appointment.getPatient().getUser().getEmail(),"Appointment Cancelled","Your appointment with "+ appointment.getDiagnosticCenter().getFullName() + " has been cancelled");
+                gmailService.sendEmail(appointment.getDiagnosticCenter().getUser().getEmail(),"Appointment Cancelled","Your appointment with "+ appointment.getPatient().getFullName() + " has been cancelled");
+            }
+
             // Calculate next exam dates
             reminderFormService.updateNextExamDate(appointment.getPatient().getId());
 
@@ -349,6 +350,14 @@ public class AppointmentRestController {
 
             appointmentRepository.save(appointment);
 
+            if(appointment.getDoctor() != null){
+                gmailService.sendEmail(appointment.getPatient().getUser().getEmail(),"Appointment Accepted","Your appointment with "+ appointment.getDoctor().getFullName() + " has been accepted");
+                gmailService.sendEmail(appointment.getDoctor().getUser().getEmail(),"Appointment Accepted","Your appointment with "+ appointment.getPatient().getFullName() + " has been accepted");
+            } else if (appointment.getDiagnosticCenter() != null) {
+                gmailService.sendEmail(appointment.getPatient().getUser().getEmail(),"Appointment Accepted","Your appointment with "+ appointment.getDiagnosticCenter().getFullName() + " has been accepted");
+                gmailService.sendEmail(appointment.getDiagnosticCenter().getUser().getEmail(),"Appointment Accepted","Your appointment with "+ appointment.getPatient().getFullName() + " has been accepted");
+            }
+
             // Calculate next exam dates
             reminderFormService.updateNextExamDate(appointment.getPatient().getId());
 
@@ -377,24 +386,49 @@ public class AppointmentRestController {
         }
 
         if(userId.equals(user.getId()) || isAuthorizedDoctor || isAuthorizedDiagnostic){
-            if(completeAppointmentRequest.getDiagnosisDescription().isEmpty() || completeAppointmentRequest.getMedicalFileNeeded() == null || completeAppointmentRequest.getRecheckNeeded() == null){
-                return ResponseEntity.badRequest().body(new MessageResponse("Diagnosis description or exam, recheck needed are required"));
+            if (completeAppointmentRequest.getDiagnosisDescription() == null || completeAppointmentRequest.getDiagnosisDescription().isEmpty() ||
+                    completeAppointmentRequest.getMedicalFileNeeded() == null || completeAppointmentRequest.getRecheckNeeded() == null) {
+
+                return ResponseEntity.badRequest().body(new MessageResponse("Diagnosis description, medical file needed, and recheck needed are required"));
             }
+
+            if (completeAppointmentRequest.getMedicalFileNeeded().equals(Appointment.MedicalFileNeeded.YES) &&
+                    (completeAppointmentRequest.getMedicalFile() == null || completeAppointmentRequest.getMedicalFile().isEmpty())) {
+
+                return ResponseEntity.badRequest().body(new MessageResponse("Medical file is required when medical file is marked as needed"));
+            }
+
             if (appointment.getAppointmentStatus() == Appointment.AppointmentStatus.PENDING) {
                 appointment.setAppointmentStatus(Appointment.AppointmentStatus.COMPLETED);
-
                 appointment.setDiagnosisDescription(completeAppointmentRequest.getDiagnosisDescription());
                 appointment.setRecheckNeeded(completeAppointmentRequest.getRecheckNeeded());
                 appointment.setMedicalFileNeeded(completeAppointmentRequest.getMedicalFileNeeded());
                 appointment.setRecheckDate(completeAppointmentRequest.getRecheckDate());
 
-                medicalExamService.uploadExam(appointmentId, completeAppointmentRequest.getMedicalFile());
-            }else if(appointment.getAppointmentStatus() == Appointment.AppointmentStatus.COMPLETED){
+                if (completeAppointmentRequest.getMedicalFile() != null &&
+                        !completeAppointmentRequest.getMedicalFile().isEmpty()) {
+
+                    medicalExamService.uploadExam(appointmentId, completeAppointmentRequest.getMedicalFile());
+                }
+            } else if (appointment.getAppointmentStatus() == Appointment.AppointmentStatus.COMPLETED) {
                 appointment.setDiagnosisDescription(completeAppointmentRequest.getDiagnosisDescription());
-                medicalExamService.uploadExam(appointmentId, completeAppointmentRequest.getMedicalFile());
+
+                if (completeAppointmentRequest.getMedicalFile() != null &&
+                        !completeAppointmentRequest.getMedicalFile().isEmpty()) {
+
+                    medicalExamService.uploadExam(appointmentId, completeAppointmentRequest.getMedicalFile());
+                }
             }
 
             appointmentRepository.save(appointment);
+
+            if(appointment.getDoctor() != null){
+                gmailService.sendEmail(appointment.getPatient().getUser().getEmail(),"Appointment Completed","Your appointment with "+ appointment.getDoctor().getFullName() + " has been completed");
+                gmailService.sendEmail(appointment.getDoctor().getUser().getEmail(),"Appointment Completed","Your appointment with "+ appointment.getPatient().getFullName() + " has been completed");
+            } else if (appointment.getDiagnosticCenter() != null) {
+                gmailService.sendEmail(appointment.getPatient().getUser().getEmail(),"Appointment Completed","Your appointment with "+ appointment.getDiagnosticCenter().getFullName() + " has been completed");
+                gmailService.sendEmail(appointment.getDiagnosticCenter().getUser().getEmail(),"Appointment Completed","Your appointment with "+ appointment.getPatient().getFullName() + " has been completed");
+            }
 
             // Calculate next exam dates
             reminderFormService.updateNextExamDate(appointment.getPatient().getId());
@@ -540,6 +574,14 @@ public class AppointmentRestController {
 
             }
             appointmentRepository.save(appointmentRequest);
+
+            if(appointmentRequest.getDoctor() != null){
+                gmailService.sendEmail(appointmentRequest.getPatient().getUser().getEmail(),"New Appointment Request","Your appointment request with "+ appointmentRequest.getDoctor().getFullName() + " has been submitted");
+                gmailService.sendEmail(appointmentRequest.getDoctor().getUser().getEmail(),"New Appointment Request","Your appointment request with "+ appointmentRequest.getPatient().getFullName() + " has been submitted");
+            } else if (appointmentRequest.getDiagnosticCenter() != null) {
+                gmailService.sendEmail(appointmentRequest.getPatient().getUser().getEmail(),"New Appointment Request","Your appointment request with "+ appointmentRequest.getDiagnosticCenter().getFullName() + " has been submitted");
+                gmailService.sendEmail(appointmentRequest.getDiagnosticCenter().getUser().getEmail(),"New Appointment Request","Your appointment request with "+ appointmentRequest.getPatient().getFullName() + " has been submitted");
+            }
             return ResponseEntity.ok().body(new MessageResponse("Appointment request saved successfully"));
         }else{
             return ResponseEntity.badRequest().body(new MessageResponse("You are not allowed to request an appointment"));
@@ -579,6 +621,14 @@ public class AppointmentRestController {
             existedAppointment.setRejectionCause(null);
 
             appointmentRepository.save(existedAppointment);
+
+            if(existedAppointment.getDoctor() != null){
+                gmailService.sendEmail(existedAppointment.getPatient().getUser().getEmail(),"New Appointment Request Change","Your appointment request with "+ existedAppointment.getDoctor().getFullName() + " has been changed");
+                gmailService.sendEmail(existedAppointment.getDoctor().getUser().getEmail(),"New Appointment Request Change","Your appointment request with "+ existedAppointment.getPatient().getFullName() + " has been changed");
+            } else if (existedAppointment.getDiagnosticCenter() != null) {
+                gmailService.sendEmail(existedAppointment.getPatient().getUser().getEmail(),"New Appointment Request Change","Your appointment request with "+ existedAppointment.getDiagnosticCenter().getFullName() + " has been changed");
+                gmailService.sendEmail(existedAppointment.getDiagnosticCenter().getUser().getEmail(),"New Appointment Request Change","Your appointment request with "+ existedAppointment.getPatient().getFullName() + " has been changed");
+            }
 
             // Calculate next exam dates
             reminderFormService.updateNextExamDate(existedAppointment.getPatient().getId());
