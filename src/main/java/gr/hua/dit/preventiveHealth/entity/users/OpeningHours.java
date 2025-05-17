@@ -36,8 +36,7 @@ public class OpeningHours {
     public OpeningHours() {
     }
 
-    public OpeningHours(Doctor doctor, DayOfWeek dayOfWeek, String startTime, String endTime) {
-        this.doctor = doctor;
+    public OpeningHours(DayOfWeek dayOfWeek, String startTime, String endTime) {
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;
