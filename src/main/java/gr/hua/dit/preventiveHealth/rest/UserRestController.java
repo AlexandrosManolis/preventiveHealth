@@ -123,7 +123,8 @@ public class UserRestController{
         }
 
         for (Doctor doctor : doctors) {
-            if(doctor.getUser().getRegisterRequest().getStatus() == RegisterRequest.Status.ACCEPTED) {
+            RegisterRequest rr = doctor.getUser().getRegisterRequest();
+            if (rr != null && rr.getStatus() == RegisterRequest.Status.ACCEPTED) {
                 User user = new User();
                 Doctor doctorDetails = new Doctor();
 
@@ -141,7 +142,8 @@ public class UserRestController{
         }
 
         for (DiagnosticCenter diagnostic : diagnostics) {
-            if (diagnostic.getUser().getRegisterRequest().getStatus() == RegisterRequest.Status.ACCEPTED) {
+            RegisterRequest rr = diagnostic.getUser().getRegisterRequest();
+            if (rr != null && rr.getStatus() == RegisterRequest.Status.ACCEPTED) {
                 User user = new User();
                 DiagnosticCenter diagnosticCenter = new DiagnosticCenter();
 

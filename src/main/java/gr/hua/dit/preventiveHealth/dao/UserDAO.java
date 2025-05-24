@@ -8,7 +8,7 @@ import java.util.List;
 @Repository
 public interface UserDAO {
     //get user via user id
-    public User getUserProfile(Integer user_id);
+    User getUserProfile(Integer user_id);
 
     //get user id via username
     Integer getUserId(String username);
@@ -16,9 +16,11 @@ public interface UserDAO {
     List<String> getAllCities();
 
     //save user
-    public void saveUser(User user);
+    void saveUser(User user);
 
-    public List<String> getAllSpecialties();
+    List<String> getAllSpecialties();
 
-    public Double averageSpecialistRating(Integer userId);
+    Double averageSpecialistRating(Integer userId);
+
+    User createDoctorUser(String username);
 }

@@ -1,23 +1,40 @@
 package gr.hua.dit.preventiveHealth.dao;
 
-import gr.hua.dit.preventiveHealth.entity.users.RegisterRequest;
-import gr.hua.dit.preventiveHealth.entity.users.User;
+import gr.hua.dit.preventiveHealth.entity.users.*;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RegisterRequestRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.NonUniqueResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collections;
-import java.util.List;
+import java.time.DayOfWeek;
+import java.util.*;
 
 @Repository
 public class UserDAOImpl implements UserDAO{
 
-
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private RegisterRequestRepository registerRequestRepository;
     @PersistenceContext
     private EntityManager entityManager;
+
+    public UserDAOImpl(UserRepository userRepository, RoleRepository roleRepository, RegisterRequestRepository registerRequestRepository) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.registerRequestRepository = registerRequestRepository;
+    }
 
     //get user profile
     @Override
@@ -90,6 +107,56 @@ public class UserDAOImpl implements UserDAO{
         } catch (NoResultException ex) {
             return Collections.emptyList(); // Return an empty list instead of null
         }
+    }
+
+    @Transactional
+    public User createDoctorUser(String username) {
+        return userRepository.findByUsername(username).orElseGet(() -> {
+            // Create and save user first
+            User user = new User(username, this.passwordEncoder.encode("user2!"), "phd2@hua.gr", "User2", "+306999999999");
+
+            Set<Role> roles = new HashSet<>();
+            roles.add(roleRepository.findByRoleName("ROLE_DOCTOR")
+                    .orElseThrow(() -> new RuntimeException("Doctor role not found")));
+            user.setRoles(roles);
+
+            // Save user to generate ID
+            user = userRepository.save(user);
+
+            userRepository.flush();
+
+            // Create doctor - the @MapsId will use the user's ID
+            Doctor doctor = new Doctor();
+            doctor.setUser(user);
+            doctor.setAddress("Pantou 13");
+            doctor.setCity("Kallithea");
+            doctor.setState("Attica");
+            doctor.setDoy("Athens");
+            doctor.setSpecialty("Cardiologist");
+            doctor.setAfm("235674569");
+
+            // Create opening hours
+            List<OpeningHours> openingHours = new ArrayList<>();
+            OpeningHours openingHour1 = new OpeningHours(DayOfWeek.MONDAY, "16:30", "20:30");
+            OpeningHours openingHour2 = new OpeningHours(DayOfWeek.TUESDAY, "12:30", "20:30");
+
+            openingHour1.setDoctor(doctor);
+            openingHour2.setDoctor(doctor);
+            openingHours.add(openingHour1);
+            openingHours.add(openingHour2);
+
+            doctor.setOpeningHours(openingHours);
+
+            user.setDoctor(doctor);
+            user = userRepository.save(user);
+
+            RegisterRequest registerRequest = new RegisterRequest();
+            registerRequest.setUser(user);
+            registerRequest.setStatus(RegisterRequest.Status.ACCEPTED);
+            registerRequestRepository.save(registerRequest);
+
+            return null;
+        });
     }
 
 

@@ -10,7 +10,10 @@ import gr.hua.dit.preventiveHealth.repository.ReminderFormRepository;
 import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -108,36 +111,7 @@ public class InitialDataService {
             return null;
         });
 
-        userRepository.findByUsername("user2").orElseGet(()-> {
-
-            User user = new User("user2", this.passwordEncoder.encode("user2!"),"phd2@hua.gr","User2","+306999999999");
-
-            List<OpeningHours> openingHours = new ArrayList<>();
-            OpeningHours openingHour = new OpeningHours(DayOfWeek.MONDAY, "16:30", "20:30");
-            OpeningHours openingHour1 = new OpeningHours(DayOfWeek.TUESDAY, "12:30", "20:30");
-            openingHours.add(openingHour);
-            openingHours.add(openingHour1);
-
-            Doctor doctor = new Doctor(user, "Pantou 13", "Kallithea", "Attica", "Athens", "Cardiologist", "235674569", openingHours);
-            Set<Role> roles = new HashSet<>();
-            roles.add(roleRepository.findByRoleName("ROLE_DOCTOR").orElseThrow(()-> new RuntimeException("Doctor role not found")));
-            user.setDoctor(doctor);
-            user.setRoles(roles);
-
-            userRepository.save(user);
-
-            for(OpeningHours opening : openingHours){
-                opening.setDoctor(doctor);
-                openingHoursRepository.save(opening);
-            }
-
-            RegisterRequest registerRequest = new RegisterRequest();
-            registerRequest.setUser(user);
-            registerRequest.setStatus(RegisterRequest.Status.ACCEPTED);
-            registerRequestRepository.save(registerRequest);
-
-            return null;
-        });
+        userDAO.createDoctorUser("user2");
     }
 
     private void addSpecialties() {
@@ -257,20 +231,13 @@ public class InitialDataService {
         medicalExamSharingRepository.deleteByExpirationTimeLessThanEqual(now);
     }
 
-    //when program starts call functions
-    @PostConstruct
-    public void setup() {
-        try {
-            createRolesUsers();
-            addSpecialties();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to initialize data", e);
-        }
-
+    @EventListener(ApplicationReadyEvent.class)
+    public void initAfterStartup() {
+        createRolesUsers();
+        addSpecialties();
         try {
             gmailAuth.getCredentials();
-        } catch (Exception e) {
+        }catch (Exception e){
             e.printStackTrace();
         }
 

@@ -39,6 +39,7 @@ public class RegisterRequest {
     public Integer getRequestedUserId() {
         return user != null ? user.getId() : null;
     }
+
     @JsonProperty("fullName")
     public String getFullName() {
         return user != null ? user.getFullName() : null;

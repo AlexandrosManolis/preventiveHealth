@@ -48,5 +48,4 @@ services:
 
 volumes:
   ds-lab-vol:
-    external: true
   minio-data:
