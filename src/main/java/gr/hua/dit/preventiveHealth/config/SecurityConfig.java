@@ -1,5 +1,7 @@
 package gr.hua.dit.preventiveHealth.config;
 
+import gr.hua.dit.preventiveHealth.config.jwtToken.AuthEntryPointJwt;
+import gr.hua.dit.preventiveHealth.config.jwtToken.AuthTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,7 +55,10 @@ public class SecurityConfig{
                                                 .authenticationEntryPoint(unauthorizedHandler))
                                         .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/v3/api-docs/**", "/v2/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                                                .requestMatchers("/api/auth/**","/actuator/health/**", "/api/user/**").permitAll()
+                                                .requestMatchers("/api/user/specialties").hasAnyRole("PATIENT", "DOCTOR", "DIAGNOSTIC")
+                                                .requestMatchers("/api/appointment/request/**").authenticated()
+                                                .requestMatchers("/api/auth/**","/actuator/health/**", "/api/user/**","/api/appointment/timeslots/**").permitAll()
+
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                                 .anyRequest().authenticated()
                 )

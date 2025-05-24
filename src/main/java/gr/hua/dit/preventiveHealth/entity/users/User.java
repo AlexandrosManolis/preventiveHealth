@@ -1,4 +1,4 @@
-package gr.hua.dit.preventiveHealth.entity;
+package gr.hua.dit.preventiveHealth.entity.users;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -198,12 +198,24 @@ public class User {
         this.diagnosticCenter = diagnosticCenter;
     }
 
-    @Override
-    public String toString() {
-        return fullName;
-    }
-
     public Integer getId() { return id; }
 
     public void setId(int id) { this.id = id; }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", fullName='" + fullName + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", roles=" + roles +
+                ", patient=" + (patient != null ? patient : "null") +
+                ", doctor=" + (doctor != null ? doctor : "null") +
+                ", diagnosticCenter=" + (diagnosticCenter != null ? diagnosticCenter.toString() : "null") +
+                ", registerRequest=" + (registerRequest != null ? registerRequest.toString() : "null") +
+                '}';
+    }
+
 }

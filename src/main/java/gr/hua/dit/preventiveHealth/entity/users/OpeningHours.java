@@ -1,17 +1,14 @@
-package gr.hua.dit.preventiveHealth.entity;
+package gr.hua.dit.preventiveHealth.entity.users;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-import javax.tools.Diagnostic;
 import java.time.DayOfWeek;
 
 @Entity
-@Table(name = "schedules", uniqueConstraints = @UniqueConstraint (columnNames = {"doctor_id", "diagnostic_center_id"}))
-public class Schedule {
+@Table(name = "openingHours", uniqueConstraints = @UniqueConstraint (columnNames = {"doctor_id", "diagnostic_center_id"}))
+public class OpeningHours {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,17 +33,16 @@ public class Schedule {
     @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Invalid time format")
     private String endTime;
 
-    public Schedule() {
+    public OpeningHours() {
     }
 
-    public Schedule(Doctor doctor, DayOfWeek dayOfWeek, String startTime, String endTime) {
-        this.doctor = doctor;
+    public OpeningHours(DayOfWeek dayOfWeek, String startTime, String endTime) {
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;
     }
 
-    public Schedule(DiagnosticCenter diagnosticCenter, DayOfWeek dayOfWeek, String startTime, String endTime) {
+    public OpeningHours(DiagnosticCenter diagnosticCenter, DayOfWeek dayOfWeek, String startTime, String endTime) {
         this.diagnosticCenter = diagnosticCenter;
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;

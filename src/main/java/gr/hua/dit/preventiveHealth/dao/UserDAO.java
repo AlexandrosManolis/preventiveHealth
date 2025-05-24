@@ -1,6 +1,6 @@
 package gr.hua.dit.preventiveHealth.dao;
 
-import gr.hua.dit.preventiveHealth.entity.User;
+import gr.hua.dit.preventiveHealth.entity.users.User;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -8,13 +8,19 @@ import java.util.List;
 @Repository
 public interface UserDAO {
     //get user via user id
-    public User getUserProfile(Integer user_id);
+    User getUserProfile(Integer user_id);
 
     //get user id via username
     Integer getUserId(String username);
 
-    //save user
-    public void saveUser(User user);
+    List<String> getAllCities();
 
-    public List<String> getAllSpecialties();
+    //save user
+    void saveUser(User user);
+
+    List<String> getAllSpecialties();
+
+    Double averageSpecialistRating(Integer userId);
+
+    User createDoctorUser(String username);
 }

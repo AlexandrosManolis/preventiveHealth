@@ -1,7 +1,7 @@
 package gr.hua.dit.preventiveHealth.rest;
 
-import gr.hua.dit.preventiveHealth.config.JwtUtils;
-import gr.hua.dit.preventiveHealth.entity.*;
+import gr.hua.dit.preventiveHealth.config.jwtToken.JwtUtils;
+import gr.hua.dit.preventiveHealth.entity.users.*;
 import gr.hua.dit.preventiveHealth.payload.request.DiagnosticSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.request.DoctorSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.request.LoginRequest;
@@ -9,12 +9,11 @@ import gr.hua.dit.preventiveHealth.payload.request.PatientSignupRequest;
 import gr.hua.dit.preventiveHealth.payload.response.JwtResponse;
 import gr.hua.dit.preventiveHealth.payload.response.MessageResponse;
 import gr.hua.dit.preventiveHealth.payload.validation.Create;
-import gr.hua.dit.preventiveHealth.repository.RegisterRequestRepository;
-import gr.hua.dit.preventiveHealth.repository.RoleRepository;
-import gr.hua.dit.preventiveHealth.repository.UserRepository;
-import gr.hua.dit.preventiveHealth.service.RegisterRequestService;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RegisterRequestRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.RoleRepository;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
+import gr.hua.dit.preventiveHealth.service.GmailService;
 import gr.hua.dit.preventiveHealth.service.UserDetailsImpl;
-import gr.hua.dit.preventiveHealth.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -42,9 +41,6 @@ public class AuthRestController {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -55,8 +51,9 @@ public class AuthRestController {
 
     @Autowired
     private JwtUtils jwtUtils;
+
     @Autowired
-    private RegisterRequestService registerRequestService;
+    private GmailService gmailService;
 
     //check username and password and if they are right set token and enter the platform
     @PostMapping("signin")
@@ -113,7 +110,7 @@ public class AuthRestController {
         if (userRepository.existsByPatient_Amka(signupRequest.getAmka())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new MessageResponse("Error: Afm is already in use!"));
+                    .body(new MessageResponse("Error: AMKA is already in use!"));
         }
 
         // Create new user's account
@@ -141,6 +138,8 @@ public class AuthRestController {
 
         //save user
         userRepository.save(user);
+
+        gmailService.sendEmail(user.getEmail(),"Registration completed", "Registration completed. Login to your account to access more features.");
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
@@ -189,18 +188,18 @@ public class AuthRestController {
         doctor.setState(signupRequest.getState());
         doctor.setSpecialty(signupRequest.getSpecialty());
 
-        List<Schedule> schedules = signupRequest.getSchedules().stream()
-                .map(scheduleRequest -> {
-                    Schedule schedule = new Schedule();
-                    schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
-                    schedule.setStartTime(scheduleRequest.getStartTime());
-                    schedule.setEndTime(scheduleRequest.getEndTime());
-                    schedule.setDoctor(doctor);
-                    return schedule;
+        List<OpeningHours> openingHours = signupRequest.getOpeningHours().stream()
+                .map(openingHourRequest -> {
+                    OpeningHours openingHour = new OpeningHours();
+                    openingHour.setDayOfWeek(openingHourRequest.getDayOfWeek());
+                    openingHour.setStartTime(openingHourRequest.getStartTime());
+                    openingHour.setEndTime(openingHourRequest.getEndTime());
+                    openingHour.setDoctor(doctor);
+                    return openingHour;
                 })
                 .collect(Collectors.toList());
 
-        doctor.setSchedules(schedules);
+        doctor.setOpeningHours(openingHours);
 
         user.setDoctor(doctor);
 
@@ -215,6 +214,8 @@ public class AuthRestController {
         registerRequest.setStatus(RegisterRequest.Status.PENDING);
 
         registerRequestRepository.save(registerRequest);
+
+        gmailService.sendEmail(user.getEmail(),"Registration completed", "Registration completed. Registration request created. You will be updated on the progress shortly.");
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
@@ -263,19 +264,19 @@ public class AuthRestController {
         diagnosticCenter.setState(signupRequest.getState());
         diagnosticCenter.setSpecialties(signupRequest.getSpecialties());
 
-        List<Schedule> schedules = signupRequest.getSchedules().stream()
-                .map(scheduleRequest -> {
-                    Schedule schedule = new Schedule();
-                    schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
-                    schedule.setStartTime(scheduleRequest.getStartTime());
-                    schedule.setEndTime(scheduleRequest.getEndTime());
-                    schedule.setDiagnosticCenter(diagnosticCenter);
+        List<OpeningHours> openingHours = signupRequest.getOpeningHours().stream()
+                .map(openingHourRequest -> {
+                    OpeningHours openingHour = new OpeningHours();
+                    openingHour.setDayOfWeek(openingHourRequest.getDayOfWeek());
+                    openingHour.setStartTime(openingHourRequest.getStartTime());
+                    openingHour.setEndTime(openingHourRequest.getEndTime());
+                    openingHour.setDiagnosticCenter(diagnosticCenter);
 
-                    return schedule;
+                    return openingHour;
                 })
                 .collect(Collectors.toList());
 
-        diagnosticCenter.setSchedules(schedules);
+        diagnosticCenter.setOpeningHours(openingHours);
 
         user.setDiagnosticCenter(diagnosticCenter);
 
@@ -290,6 +291,8 @@ public class AuthRestController {
         registerRequest.setStatus(RegisterRequest.Status.PENDING);
 
         registerRequestRepository.save(registerRequest);
+
+        gmailService.sendEmail(user.getEmail(),"Registration completed", "Registration completed. Registration request created. You will be updated on the progress shortly.");
 
         return new ResponseEntity<>(user, HttpStatus.CREATED);
     }

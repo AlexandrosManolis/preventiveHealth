@@ -1,7 +1,8 @@
-package gr.hua.dit.preventiveHealth.entity;
+package gr.hua.dit.preventiveHealth.entity.users;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -19,11 +20,7 @@ public class DiagnosticCenter {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
-    @JsonManagedReference("diagnostic-schedule")
-    @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
-    private List<Schedule> schedules;
-
+  
     @OneToOne
     @MapsId
     @JsonBackReference("user-diagnostic")
@@ -47,6 +44,9 @@ public class DiagnosticCenter {
     @Pattern(regexp = "\\d+", message = "Number should contain only digits.")
     private String afm;
 
+    @JsonManagedReference("diagnostic-schedule")
+    @OneToMany(mappedBy = "diagnosticCenter", cascade = CascadeType.ALL)
+    private List<OpeningHours> openingHours;
 
     @NotEmpty
     @ElementCollection
@@ -60,15 +60,22 @@ public class DiagnosticCenter {
     public DiagnosticCenter() {
     }
 
-    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<Schedule> schedules, User user) {
+    public DiagnosticCenter(String address,String city, String state,  String doy, String afm, List<String> specialties, List<OpeningHours> openingHours) {
         this.address = address;
         this.city = city;
         this.state = state;
         this.doy = doy;
         this.afm = afm;
         this.specialties = specialties;
-        this.schedules = schedules;
-        this.user = user;
+        this.openingHours = openingHours;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getCity() {
@@ -119,12 +126,12 @@ public class DiagnosticCenter {
         this.afm = afm;
     }
 
-    public List<Schedule> getSchedules() {
-        return schedules;
+    public List<OpeningHours> getOpeningHours() {
+        return openingHours;
     }
 
-    public void setSchedules(List<Schedule> schedules) {
-        this.schedules = schedules;
+    public void setOpeningHours(List<OpeningHours> openingHours) {
+        this.openingHours = openingHours;
     }
 
     public User getUser() {
@@ -133,5 +140,24 @@ public class DiagnosticCenter {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    @JsonProperty("fullName") // Explicitly include in JSON
+    public String getFullName() {
+        return user != null ? user.getFullName() : null;
+    }
+
+    @Override
+    public String toString() {
+        return "DiagnosticCenter{" +
+                "id=" + id +
+                ", openingHours=" + openingHours +
+                ", address='" + address + '\'' +
+                ", city='" + city + '\'' +
+                ", state='" + state + '\'' +
+                ", doy='" + doy + '\'' +
+                ", afm='" + afm + '\'' +
+                ", specialties=" + specialties +
+                '}';
     }
 }
