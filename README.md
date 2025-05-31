@@ -45,13 +45,13 @@ Preventive Health is a platform focused on empowering users to take a proactive 
 1. Set up environment variables:
    Create a `.env` file in the root directory and add the following:
    ```
-   DB_USER=<postgres_user>
-   DB_PASSWORD=<postgres_password>
-   DB_NAME=preventiveHealth
+   POSTGRES_USER=<postgres_user>
+   POSTGRES_PASSWORD=<postgres_password>
+   POSTGRES_DB=preventiveHealth
   
    MINIO_ACCESS_KEY=<minio_user>
    MINIO_SECRET_KEY=<minio_password>
-   MINIO_BUCKET=preventiveHealth
+   MINIO_BUCKET_NAME=preventiveHealth
    ```
 
 #### Automated Deployment using Docker Compose
