@@ -13,13 +13,23 @@ Preventive Health is a platform focused on empowering users to take a proactive 
 - **Medical Records Management**: Store and access your medical history securely. Share your medical history with other doctors(readOnly)
 - **Find specialists**: Find specialists in different cities and their ratings. Make an appointment fast and easy.
 
+## Technologies
+
+- **Frontend**: Vue.js
+- **Backend**: Spring Boot (Java 21, Maven)
+- **Database**: PostgreSQL (Dockerized)
+- **Storage**: MinIO (S3-compatible, Dockerized)
+- **Authentication**: JWT (JSON Web Tokens)
+- **Email Service**: Google Gmail API
+- **Infrastructure**: Docker Compose (for full local environment setup)
+
 ## Installation
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- Docker (for PostgreSQL and MinIO containers)
-- Java 11 or higher
-- Maven
+- Docker & Docker Compose
+- Java 21
+- Maven (or use the included Maven wrapper)
+- Node.js (for frontend, if applicable)
 
 ### Setup Steps
 1. Clone the repository:
@@ -36,6 +46,7 @@ Preventive Health is a platform focused on empowering users to take a proactive 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
 2. Create a new project or select an existing one
 3. Create OAuth 2.0 credentials
+4. In redirect uris field add http://localhost:9090/login/oauth2/code/google , http://localhost:8888/Callback
 4. Download the credentials JSON file
 5. Place the file in the `src/main/resources/` directory as `credentials.json`
 
@@ -45,40 +56,62 @@ Preventive Health is a platform focused on empowering users to take a proactive 
 1. Set up environment variables:
    Create a `.env` file in the root directory and add the following:
    ```
-   DB_USER=<postgres_user>
-   DB_PASSWORD=<postgres_password>
-   DB_NAME=preventiveHealth
+   POSTGRES_USER=<postgres_user>
+   POSTGRES_PASSWORD=<postgres_password>
+   POSTGRES_DB=preventiveHealth
   
    MINIO_ACCESS_KEY=<minio_user>
    MINIO_SECRET_KEY=<minio_password>
-   MINIO_BUCKET=preventiveHealth
+   MINIO_BUCKET_NAME=preventivehealth
    ```
 
 #### Automated Deployment using Docker Compose
-To start PostgreSQL and MinIO with a single command:
+To start PostgreSQL, MinIO and App with a single command:
 ```bash
-docker-compose up -d
+docker-compose up --build -d
 ```
 
-To stop PostgreSQL and MinIO with a single command:
+Open logs for the app and press the url for enabling google email service
+```bash
+docker logs preventivehealth_app
+```
+
+To stop them with a single command:
 ```bash
 docker-compose down
 ```
 
-### Build and Run
+To delete them all with a single command:
+```bash
+docker-compose down -v
+```
+
+### Build and Run the App with Local Spring Boot + Docker Services
+
+To start PostgreSQL and MinIO with a single command:
+```bash
+docker-compose up -d postgres minio
+```
 
 #### Without tests
 ```bash
 ./mvnw package -Dmaven.test.skip
 ```
+
 Then, to run the application (when a PostgreSQL database is active):
 ```bash
 java -jar target/preventiveHealth-0.0.1-SNAPSHOT.jar
 ```
+or press the start button of your code editor
 
-#### With tests
+To stop Postgres and Minio with a single command:
 ```bash
-./mvnw test
+docker-compose down
+```
+
+To delete Postgres and Minio with a single command:
+```bash
+docker-compose down -v
 ```
 
 ## Project Structure
@@ -87,24 +120,17 @@ java -jar target/preventiveHealth-0.0.1-SNAPSHOT.jar
 preventiveHealth/
 ├── src/
 │   ├── main/
-│   │   ├── java/            # Java backend code
-│   │   ├── resources/       # Application resources
-│   │   │   ├── credentials.json  # Google Email API credentials
-│   │   │   └── application.properties
-│   └── test/                # Test files
-├── .env #change it with your credentials
-├── docker-compose.yml #PostgreSQL and minio automation
-└── pom.xml
+│   │   ├── java/                  # Java backend code
+│   │   └── resources/
+│   │       ├── credentials.json   # Google Email API credentials
+│   │       └── application.properties
+│   └── test/                      # Unit and integration tests
+├── .env                          # Environment variables for Docker
+├── Dockerfile                    # Multi-stage Dockerfile for Spring Boot
+├── docker-compose.yml            # Infrastructure automation
+├── mvnw / .mvn/                  # Maven wrapper
+└── pom.xml                       # Maven project file
 ```
-
-## Technologies
-
-- **Frontend**: Vue.js
-- **Backend**: Node.js, SpringBoot
-- **Database**: PostgreSQL
-- **Storage**: MinIO (S3-compatible object storage)
-- **Authentication**: JWT (JSON Web Tokens)
-- **Email Service**: Google Email API
 
 ## Contributing
 

@@ -1,36 +1,45 @@
 services:
   postgres:
     image: postgres:14
-    container_name: ds-lab-pg
-    env_file: .env
+    container_name: preventivehealth_pg
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    volumes:
-      - ds-lab-vol:/var/lib/postgresql/data
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     ports:
       - "5432:5432"
-    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   minio:
     image: minio/minio
-    container_name: ds-lab-minio
+    container_name: preventivehealth_minio
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-    volumes:
-      - minio-data:/data
     ports:
       - "9000:9000"
       - "9001:9001"
-    command: server /data --console-address ":9001"
-    restart: unless-stopped
+    volumes:
+      - minio_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   create-buckets:
     image: minio/mc
@@ -40,12 +49,30 @@ services:
     env_file: .env
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add s3server http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
-      /usr/bin/mc mb s3server/${MINIO_BUCKET_NAME};
-      /usr/bin/mc anonymous set download s3server/${MINIO_BUCKET_NAME};
-      exit 0;
+        /usr/bin/mc alias set s3server http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY} &&
+        /usr/bin/mc mb -p s3server/${MINIO_BUCKET_NAME} &&
+        /usr/bin/mc anonymous set download s3server/${MINIO_BUCKET_NAME}
       "
 
+  springboot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: preventivehealth_app
+    ports:
+      - "9090:9090"
+      - "8888:8888"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    restart: unless-stopped
+
 volumes:
-  ds-lab-vol:
-  minio-data:
+  pgdata:
+  minio_data:
