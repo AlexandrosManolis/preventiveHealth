@@ -46,6 +46,7 @@ Preventive Health is a platform focused on empowering users to take a proactive 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
 2. Create a new project or select an existing one
 3. Create OAuth 2.0 credentials
+4. In redirect uris field add http://localhost:9090/login/oauth2/code/google , http://localhost:8888/Callback
 4. Download the credentials JSON file
 5. Place the file in the `src/main/resources/` directory as `credentials.json`
 
@@ -61,13 +62,18 @@ Preventive Health is a platform focused on empowering users to take a proactive 
   
    MINIO_ACCESS_KEY=<minio_user>
    MINIO_SECRET_KEY=<minio_password>
-   MINIO_BUCKET_NAME=preventiveHealth
+   MINIO_BUCKET_NAME=preventivehealth
    ```
 
 #### Automated Deployment using Docker Compose
 To start PostgreSQL, MinIO and App with a single command:
 ```bash
 docker-compose up --build -d
+```
+
+Open logs for the app and press the url for enabling google email service
+```bash
+docker logs preventivehealth_app
 ```
 
 To stop them with a single command:
