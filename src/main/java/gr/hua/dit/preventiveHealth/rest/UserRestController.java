@@ -345,6 +345,32 @@ public class UserRestController{
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("{userId}/profile")
+    public ResponseEntity<?> userProfile(@PathVariable Integer userId) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        String userRole = userService.getUserRole();
+        Integer authUserId = userDAO.getUserId(username);
+
+        User user = userDAO.getUserProfile(userId);
+
+        if (user == null) {
+            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND); // Return 404 if user does not exist
+        }
+
+        boolean isAdmin = "ROLE_ADMIN".equals(userRole);
+        boolean isOwner = userId.equals(authUserId);
+
+        System.out.println(isOwner);
+        if (!isOwner && !isAdmin) {
+            return new ResponseEntity<>("Unauthorized to access this profile", HttpStatus.UNAUTHORIZED);
+        }
+        user.setPassword(null);
+        return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+
     @Transactional
     @Validated(Update.class)
     @PostMapping("{userId}/edit-profile")
