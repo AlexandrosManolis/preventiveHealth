@@ -1,8 +1,7 @@
 package gr.hua.dit.preventiveHealth.service;
 
-import gr.hua.dit.preventiveHealth.dao.UserDAO;
-import gr.hua.dit.preventiveHealth.repository.usersRepository.UserRepository;
-import gr.hua.dit.preventiveHealth.entity.users.User;
+import gr.hua.dit.preventiveHealth.entity.users.*;
+import gr.hua.dit.preventiveHealth.repository.usersRepository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -17,9 +16,6 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private UserDAO userDAO;
 
     @Override
     @Transactional

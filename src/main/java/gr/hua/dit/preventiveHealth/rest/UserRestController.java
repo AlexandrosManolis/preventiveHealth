@@ -370,7 +370,6 @@ public class UserRestController{
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
-
     @Transactional
     @Validated(Update.class)
     @PostMapping("{userId}/edit-profile")
@@ -443,7 +442,7 @@ public class UserRestController{
                     userDetails.setEmail(the_user.getEmail());
                 }
             }
-            gmailService.sendEmail(user.getEmail(),"Your account details have been successfully updated.", "Your account details have been successfully updated. If you did not authorize these changes, please contact us immediately.");
+            //gmailService.sendEmail(user.getEmail(),"Your account details have been successfully updated.", "Your account details have been successfully updated. If you did not authorize these changes, please contact us immediately.");
             return new ResponseEntity<>(the_user, HttpStatus.OK);
         } catch (Exception e) {
             String errorMessage = "Error saving user: " + e.getMessage();
@@ -475,6 +474,8 @@ public class UserRestController{
         doctor.setDoy(user.getDoctor().getDoy());
         doctor.setAfm(user.getDoctor().getAfm());
 
+        doctor.setUser(the_user);
+
         handleDoctorOpeningHoursUpdate(doctor, user.getDoctor().getOpeningHours());
 
         if (user.getRegisterRequest() != null) {
@@ -494,6 +495,9 @@ public class UserRestController{
         diagnostic.setState(user.getDiagnosticCenter().getState());
         diagnostic.setAfm(user.getDiagnosticCenter().getAfm());
 
+        // Set the bidirectional relationship
+        diagnostic.setUser(the_user);
+
         if (user.getDiagnosticCenter().getSpecialties() != null) {
             diagnostic.setSpecialties(user.getDiagnosticCenter().getSpecialties());
         }
@@ -512,51 +516,61 @@ public class UserRestController{
         if (openingHours == null) return;
 
         List<OpeningHours> existingOpeningHours = doctor.getOpeningHours();
+        if (existingOpeningHours == null) {
+            existingOpeningHours = new ArrayList<>();
+            doctor.setOpeningHours(existingOpeningHours);
+        }
+
         Map<Integer, OpeningHours> existingOpeningHoursMap = existingOpeningHours.stream()
                 .filter(schedule -> schedule.getId() != null)
                 .collect(Collectors.toMap(OpeningHours::getId, schedule -> schedule));
 
         Set<Integer> processedIds = new HashSet<>();
-        List<OpeningHours> updatedOpeningHours = new ArrayList<>();
 
-
+        // Process incoming opening hours
         for (OpeningHours schedule : openingHours) {
             if (schedule.getId() != null && existingOpeningHoursMap.containsKey(schedule.getId())) {
+                // Update existing entry
                 OpeningHours existingOpeningHour = existingOpeningHoursMap.get(schedule.getId());
                 existingOpeningHour.setDayOfWeek(schedule.getDayOfWeek());
                 existingOpeningHour.setStartTime(schedule.getStartTime());
                 existingOpeningHour.setEndTime(schedule.getEndTime());
                 processedIds.add(schedule.getId());
-                updatedOpeningHours.add(existingOpeningHour);
             } else {
+                // Add new entry
                 schedule.setDoctor(doctor);
-                OpeningHours savedSchedule = openingHoursRepository.save(schedule);
-                doctor.getOpeningHours().add(savedSchedule);
-                processedIds.add(savedSchedule.getId());
-                updatedOpeningHours.add(savedSchedule);
+                existingOpeningHours.add(schedule);
+                if (schedule.getId() != null) {
+                    processedIds.add(schedule.getId());
+                }
             }
         }
 
-        for (OpeningHours existingOpeningHour : existingOpeningHours) {
+        // Remove unprocessed entries (deletions) - iterate backwards to avoid index issues
+        for (int i = existingOpeningHours.size() - 1; i >= 0; i--) {
+            OpeningHours existingOpeningHour = existingOpeningHours.get(i);
             if (existingOpeningHour.getId() != null && !processedIds.contains(existingOpeningHour.getId())) {
-                openingHoursRepository.delete(existingOpeningHour); // Delete from database
+                existingOpeningHours.remove(i); // This will trigger cascade delete due to orphanRemoval
             }
         }
-        doctor.setOpeningHours(updatedOpeningHours);
     }
 
     private void handleDiagnosticCenterOpeningHoursUpdate(DiagnosticCenter diagnostic, List<OpeningHours> openingHours) {
         if (openingHours == null) return;
 
         List<OpeningHours> existingOpeningHours = diagnostic.getOpeningHours();
+        if (existingOpeningHours == null) {
+            existingOpeningHours = new ArrayList<>();
+            diagnostic.setOpeningHours(existingOpeningHours);
+        }
+
         Map<Integer, OpeningHours> existingOpeningHoursMap = existingOpeningHours.stream()
                 .filter(openingHour -> openingHour.getId() != null)
                 .collect(Collectors.toMap(OpeningHours::getId, openingHour -> openingHour));
 
         Set<Integer> processedIds = new HashSet<>();
 
-        List<OpeningHours> updatedOpeningHours = new ArrayList<>();
-
+        // Process incoming opening hours
         for (OpeningHours openingHour : openingHours) {
             if (openingHour.getId() != null && existingOpeningHoursMap.containsKey(openingHour.getId())) {
                 // Update existing entry
@@ -565,23 +579,23 @@ public class UserRestController{
                 existingOpeningHour.setStartTime(openingHour.getStartTime());
                 existingOpeningHour.setEndTime(openingHour.getEndTime());
                 processedIds.add(openingHour.getId());
-                updatedOpeningHours.add(existingOpeningHour);
             } else {
-                // Insert new entry
+                // Add new entry
                 openingHour.setDiagnosticCenter(diagnostic);
-                OpeningHours savedOpeningHour = openingHoursRepository.save(openingHour);
-                processedIds.add(savedOpeningHour.getId());
-                updatedOpeningHours.add(savedOpeningHour);
+                existingOpeningHours.add(openingHour);
+                if (openingHour.getId() != null) {
+                    processedIds.add(openingHour.getId());
+                }
             }
         }
 
-        // Remove unprocessed entries (deletions)
-        for (OpeningHours existingOpeningHour : existingOpeningHours) {
+        // Remove unprocessed entries (deletions) - iterate backwards to avoid index issues
+        for (int i = existingOpeningHours.size() - 1; i >= 0; i--) {
+            OpeningHours existingOpeningHour = existingOpeningHours.get(i);
             if (existingOpeningHour.getId() != null && !processedIds.contains(existingOpeningHour.getId())) {
-                openingHoursRepository.delete(existingOpeningHour); // Delete from database
+                existingOpeningHours.remove(i); // This will trigger cascade delete due to orphanRemoval
             }
         }
-        diagnostic.setOpeningHours(updatedOpeningHours);
     }
 
 
@@ -612,5 +626,4 @@ public class UserRestController{
             user.setRegisterRequest(registerRequest);
         }
     }
-
 }

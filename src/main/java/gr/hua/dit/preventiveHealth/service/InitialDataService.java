@@ -28,37 +28,29 @@ import java.util.*;
 @Service
 public class InitialDataService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
+    private final RoleRepository roleRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private UserDAO userDAO;
+    private final UserDAO userDAO;
 
-    @Autowired
-    private SpecialtiesRepository specialtiesRepository;
+    private final SpecialtiesRepository specialtiesRepository;
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    @Autowired
-    private GmailAuth gmailAuth;
+    private final GmailAuth gmailAuth;
 
-    @Autowired
-    private GmailService gmailService;
-    @Autowired
-    private ReminderFormRepository reminderFormRepository;
-    @Autowired
-    private MedicalExamSharingRepository medicalExamSharingRepository;
-    @Autowired
-    private OpeningHoursRepository openingHoursRepository;
-    @Autowired
-    private RegisterRequestRepository registerRequestRepository;
+    private final GmailService gmailService;
+
+    private final ReminderFormRepository reminderFormRepository;
+
+    private final MedicalExamSharingRepository medicalExamSharingRepository;
+
+    private final OpeningHoursRepository openingHoursRepository;
+
+    private final RegisterRequestRepository registerRequestRepository;
 
     @Autowired
     public InitialDataService(UserRepository userRepository, UserDAO userDAO, RoleRepository roleRepository, PasswordEncoder passwordEncoder, SpecialtiesRepository specialtiesRepository, AppointmentRepository appointmentRepository, GmailAuth gmailAuth, GmailService gmailService, ReminderFormRepository reminderFormRepository, MedicalExamSharingRepository medicalExamSharingRepository, OpeningHoursRepository openingHoursRepository, RegisterRequestRepository registerRequestRepository) {
@@ -171,14 +163,16 @@ public class InitialDataService {
                 .forEach(specialtiesRepository::save);
     }
 
-    private void everyDayCheckAppointments() {
+    @Transactional
+    public void everyDayCheckAppointments() {
         List<Appointment> appointments = appointmentRepository.findAll();
         LocalDate today = LocalDate.now();
 
-        for (Appointment appointment : appointments) {
+        List<Integer> appointmentsToDelete = new ArrayList<>();
 
+        for (Appointment appointment : appointments) {
             if((appointment.getDate().isBefore(today) && appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.PENDING)
-                || (appointment.getDate().isBefore(today.minusDays(7)) && appointment.getAppointmentStatus() == Appointment.AppointmentStatus.PENDING && appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED)) {
+                    || (appointment.getDate().isBefore(today.minusDays(7)) && appointment.getAppointmentStatus() == Appointment.AppointmentStatus.PENDING && appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.APPROVED)) {
                 appointment.setAppointmentRequestStatus(Appointment.AppointmentRequestStatus.REJECTED);
                 appointment.setAppointmentStatus(Appointment.AppointmentStatus.CANCELLED);
                 appointment.setRejectionCause("Rejected due to the appointment's date has already passed.");
@@ -186,11 +180,17 @@ public class InitialDataService {
             }
 
             if(appointment.getDate().isBefore(today.minusMonths(1)) && (appointment.getAppointmentRequestStatus() == Appointment.AppointmentRequestStatus.REJECTED || appointment.getAppointmentStatus() == Appointment.AppointmentStatus.CANCELLED)) {
-                appointmentRepository.delete(appointment);
+                appointmentsToDelete.add(appointment.getId());
             }
+        }
+
+        // Delete appointments by ID to avoid EntityManager issues
+        for (Integer appointmentId : appointmentsToDelete) {
+            appointmentRepository.deleteById(appointmentId);
         }
     }
 
+    @Transactional
     @Scheduled(cron = "0 0 11 * * ?")
     public void sendNotifications() {
         LocalDate today = LocalDate.now();
@@ -225,6 +225,7 @@ public class InitialDataService {
         }
     }
 
+    @Transactional
     @Scheduled(cron = "0 0 * * * *")
     public void checkExamSharing(){
         LocalDateTime now = LocalDateTime.now();
@@ -232,6 +233,7 @@ public class InitialDataService {
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @Transactional
     public void initAfterStartup() {
         createRolesUsers();
         addSpecialties();
