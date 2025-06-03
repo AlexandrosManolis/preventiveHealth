@@ -88,9 +88,11 @@ public class AdminRestController {
             return ResponseEntity.notFound().build();
         }
 
+        gmailService.sendEmail(userOptional.get().getEmail(),"Delete account", "Your account has been deleted.");
         userRepository.delete(userOptional.get());
         Map<String, String> response = new HashMap<>();
         response.put("message", "User deleted successfully");
+
         return ResponseEntity.ok(response);
     }
 }
