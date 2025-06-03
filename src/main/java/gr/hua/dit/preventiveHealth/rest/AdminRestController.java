@@ -12,8 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("api/admin")
@@ -79,5 +78,19 @@ public class AdminRestController {
             return ResponseEntity.badRequest().body(new MessageResponse("User has no pending request"));
         }
         return new ResponseEntity<>(request, HttpStatus.OK);
+    }
+
+    @DeleteMapping("remove/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable Integer userId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        userRepository.delete(userOptional.get());
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "User deleted successfully");
+        return ResponseEntity.ok(response);
     }
 }
