@@ -442,7 +442,7 @@ public class UserRestController{
                     userDetails.setEmail(the_user.getEmail());
                 }
             }
-            //gmailService.sendEmail(user.getEmail(),"Your account details have been successfully updated.", "Your account details have been successfully updated. If you did not authorize these changes, please contact us immediately.");
+            gmailService.sendEmail(user.getEmail(),"Your account details have been successfully updated.", "Your account details have been successfully updated. If you did not authorize these changes, please contact us immediately.");
             return new ResponseEntity<>(the_user, HttpStatus.OK);
         } catch (Exception e) {
             String errorMessage = "Error saving user: " + e.getMessage();
